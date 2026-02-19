@@ -162,7 +162,7 @@ deploy_datastores() {
 }
 
 get_featurestore_name() {
-    grep -A1 'kind: FeatureStore' "${GENERATED_DIR}/feast.yaml" | grep 'name:' | head -1 | awk '{print $2}'
+    grep -A3 'kind: FeatureStore' "${GENERATED_DIR}/feast.yaml" | grep 'name:' | head -1 | awk '{print $2}'
 }
 
 deploy_feast() {
