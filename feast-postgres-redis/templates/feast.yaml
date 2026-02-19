@@ -8,7 +8,7 @@ stringData:
     connection_string: redis.__NAMESPACE__.svc.cluster.local:6379
   sql: |
     path: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres.__NAMESPACE__.svc.cluster.local:5432/${POSTGRES_DB}
-    cache_ttl_seconds: 60
+    cache_ttl_seconds: 10
     sqlalchemy_config_kwargs:
         echo: false
         pool_pre_ping: true
