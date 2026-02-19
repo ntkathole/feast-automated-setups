@@ -72,8 +72,8 @@ KUBECTL_CMD=oc ./setup.sh -n my-feast -c -o
 3. **Namespace setup** — creates or validates the target namespace
 4. **Operator install** (optional) — applies `infra/feast-operator/dist/install.yaml`
 5. **Datastore deployment** — applies PostgreSQL and Redis manifests, waits for pods to be ready
-6. **FeatureStore deployment** — applies the Feast Secret and FeatureStore CR, waits for all pods to be Ready
-7. **Feast apply** — waits for the Feast deployment to be available, discovers the operator-created CronJob, triggers a one-off Job to run `feast apply`, and waits for completion
+6. **FeatureStore deployment** — applies the Feast Secret and FeatureStore CR, polls `status.phase` until the CR reaches `Ready`
+7. **Feast apply** — finds the operator-created CronJob, triggers a one-off Job to run `feast apply`, and waits for completion
 
 ## Customization
 

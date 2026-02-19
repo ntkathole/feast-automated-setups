@@ -171,41 +171,39 @@ deploy_feast() {
         return 0
     fi
 
+    local fs_name
+    fs_name=$(get_featurestore_name)
+
     info "Deploying Feast FeatureStore CR..."
     ${KUBECTL_CMD} apply -f "${GENERATED_DIR}/feast.yaml"
     ok "FeatureStore CR applied"
 
-    local fs_name
-    fs_name=$(get_featurestore_name)
-    local feast_label="feast.dev/name=${fs_name}"
-    info "Using label selector: ${feast_label}"
+    info "Waiting for FeatureStore CR '${fs_name}' to be ready (this may take a few minutes)..."
+    local cr_ready=false
+    for i in $(seq 1 30); do
+        local phase
+        phase=$(${KUBECTL_CMD} get featurestore "${fs_name}" -n "${NAMESPACE}" \
+            -o jsonpath='{.status.phase}' 2>/dev/null) || true
 
-    info "Waiting for FeatureStore pods to start (this may take a few minutes)..."
-    sleep 10
-
-    local feast_ready=false
-    for i in $(seq 1 12); do
-        if ${KUBECTL_CMD} get pods -n "${NAMESPACE}" -l "${feast_label}" 2>/dev/null | grep -q "Running"; then
-            feast_ready=true
+        if [[ "${phase}" == "Ready" ]]; then
+            cr_ready=true
             break
+        elif [[ "${phase}" == "Failed" ]]; then
+            warn "FeatureStore CR is in Failed state. Check:"
+            warn "  ${KUBECTL_CMD} describe featurestore ${fs_name} -n ${NAMESPACE}"
+            return 1
         fi
-        info "  Checking FeatureStore pods... (attempt ${i}/12)"
+        info "  FeatureStore phase: ${phase:-Pending} (attempt ${i}/30)"
         sleep 10
     done
 
-    if ${feast_ready}; then
-        ok "FeatureStore pods are running"
+    if ${cr_ready}; then
+        ok "FeatureStore CR '${fs_name}' is Ready"
     else
-        warn "FeatureStore pods may not be fully ready yet. Check with:"
-        warn "  ${KUBECTL_CMD} get pods -n ${NAMESPACE}"
+        warn "FeatureStore CR did not reach Ready state within timeout. Check with:"
+        warn "  ${KUBECTL_CMD} get featurestore ${fs_name} -n ${NAMESPACE}"
+        warn "  ${KUBECTL_CMD} describe featurestore ${fs_name} -n ${NAMESPACE}"
     fi
-
-    info "Waiting for all FeatureStore pods to be Ready..."
-    ${KUBECTL_CMD} wait --for=condition=ready pod \
-        -l "${feast_label}" \
-        -n "${NAMESPACE}" \
-        --timeout="${WAIT_TIMEOUT}s" 2>/dev/null || \
-        warn "Some FeatureStore pods may not be fully ready yet"
 }
 
 run_feast_apply() {
@@ -219,26 +217,11 @@ run_feast_apply() {
     local deploy_name="feast-${fs_name}"
     local feast_label="feast.dev/name=${fs_name}"
 
-    info "Waiting for deployment '${deploy_name}' to be available..."
-    ${KUBECTL_CMD} wait --for=condition=available "deployment/${deploy_name}" \
-        -n "${NAMESPACE}" \
-        --timeout="${APPLY_TIMEOUT}s" 2>/dev/null || \
-        { warn "Deployment '${deploy_name}' not available yet"; return 0; }
-    ok "Deployment '${deploy_name}' is available"
-
-    info "Looking for the feast-apply CronJob created by the operator..."
+    info "Looking for the feast-apply CronJob..."
     local cronjob_name=""
-    for i in $(seq 1 12); do
-        cronjob_name=$(${KUBECTL_CMD} get cronjobs -n "${NAMESPACE}" \
-            -l "${feast_label}" \
-            -o jsonpath='{.items[0].metadata.name}' 2>/dev/null) || true
-
-        if [[ -n "${cronjob_name}" ]]; then
-            break
-        fi
-        info "  Waiting for CronJob to be created... (attempt ${i}/12)"
-        sleep 10
-    done
+    cronjob_name=$(${KUBECTL_CMD} get cronjobs -n "${NAMESPACE}" \
+        -l "${feast_label}" \
+        -o jsonpath='{.items[0].metadata.name}' 2>/dev/null) || true
 
     if [[ -z "${cronjob_name}" ]]; then
         warn "No feast-apply CronJob found. You may need to trigger 'feast apply' manually."
