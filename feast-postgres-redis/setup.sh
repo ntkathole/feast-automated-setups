@@ -21,7 +21,9 @@ Options:
   -o, --operator-install     Also install the Feast Operator (from dist/install.yaml)
       --skip-datastores      Skip deploying Redis and PostgreSQL (if already running)
       --skip-feast           Skip deploying the FeatureStore CR (deploy only datastores)
+      --skip-apply           Skip running 'feast apply' after deployment
       --wait SECONDS         Seconds to wait for datastore pods to be ready (default: 120)
+      --apply-timeout SECS   Seconds to wait for the feast-apply Job to complete (default: 300)
   -h, --help                 Show this help message
 
 Examples:
@@ -33,6 +35,9 @@ Examples:
 
   # Deploy only the FeatureStore CR (datastores already running)
   $(basename "$0") -n feast --skip-datastores
+
+  # Deploy without running feast apply automatically
+  $(basename "$0") -n my-feast -c -o --skip-apply
 EOF
     exit 0
 }
@@ -42,7 +47,9 @@ CREATE_NS=false
 INSTALL_OPERATOR=false
 SKIP_DATASTORES=false
 SKIP_FEAST=false
+SKIP_APPLY=false
 WAIT_TIMEOUT=120
+APPLY_TIMEOUT=300
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -51,7 +58,9 @@ while [[ $# -gt 0 ]]; do
         -o|--operator-install) INSTALL_OPERATOR=true; shift ;;
         --skip-datastores)    SKIP_DATASTORES=true; shift ;;
         --skip-feast)         SKIP_FEAST=true; shift ;;
+        --skip-apply)         SKIP_APPLY=true; shift ;;
         --wait)               WAIT_TIMEOUT="$2"; shift 2 ;;
+        --apply-timeout)      APPLY_TIMEOUT="$2"; shift 2 ;;
         -h|--help)            usage ;;
         *) echo "Unknown option: $1"; usage ;;
     esac
@@ -181,6 +190,60 @@ deploy_feast() {
         warn "FeatureStore pods may not be fully ready yet. Check with:"
         warn "  ${KUBECTL_CMD} get pods -n ${NAMESPACE}"
     fi
+
+    info "Waiting for all FeatureStore pods to be Ready..."
+    ${KUBECTL_CMD} wait --for=condition=ready pod \
+        -l app.kubernetes.io/managed-by=feast-operator \
+        -n "${NAMESPACE}" \
+        --timeout="${WAIT_TIMEOUT}s" 2>/dev/null || \
+        warn "Some FeatureStore pods may not be fully ready yet"
+}
+
+run_feast_apply() {
+    if ${SKIP_FEAST} || ${SKIP_APPLY}; then
+        info "Skipping feast apply (--skip-feast or --skip-apply)"
+        return 0
+    fi
+
+    info "Looking for the feast-apply CronJob created by the operator..."
+
+    local cronjob_name=""
+    for i in $(seq 1 6); do
+        cronjob_name=$(${KUBECTL_CMD} get cronjobs -n "${NAMESPACE}" \
+            -l app.kubernetes.io/managed-by=feast-operator \
+            -o jsonpath='{.items[0].metadata.name}' 2>/dev/null) || true
+
+        if [[ -n "${cronjob_name}" ]]; then
+            break
+        fi
+        info "  Waiting for CronJob to be created... (attempt ${i}/6)"
+        sleep 10
+    done
+
+    if [[ -z "${cronjob_name}" ]]; then
+        warn "No feast-apply CronJob found. You may need to trigger 'feast apply' manually."
+        return 0
+    fi
+
+    ok "Found CronJob: ${cronjob_name}"
+
+    local job_name="feast-apply-$(date +%s)"
+    info "Creating one-off Job '${job_name}' from CronJob '${cronjob_name}'..."
+    ${KUBECTL_CMD} create job "${job_name}" \
+        --from="cronjob/${cronjob_name}" \
+        -n "${NAMESPACE}"
+
+    info "Waiting for feast-apply Job to complete (timeout: ${APPLY_TIMEOUT}s)..."
+    if ${KUBECTL_CMD} wait --for=condition=complete "job/${job_name}" \
+        -n "${NAMESPACE}" \
+        --timeout="${APPLY_TIMEOUT}s" 2>/dev/null; then
+        ok "feast apply completed successfully"
+    else
+        warn "feast-apply Job did not complete within ${APPLY_TIMEOUT}s"
+        warn "Check Job status:"
+        warn "  ${KUBECTL_CMD} get job ${job_name} -n ${NAMESPACE}"
+        warn "  ${KUBECTL_CMD} logs job/${job_name} -n ${NAMESPACE}"
+    fi
 }
 
 print_summary() {
@@ -188,10 +251,11 @@ print_summary() {
     echo "=============================================="
     echo "  Feast Deployment Summary"
     echo "=============================================="
-    echo "  Namespace:  ${NAMESPACE}"
-    echo "  Datastores: $(${SKIP_DATASTORES} && echo 'skipped' || echo 'deployed')"
-    echo "  Feast CR:   $(${SKIP_FEAST} && echo 'skipped' || echo 'deployed')"
-    echo "  Operator:   $(${INSTALL_OPERATOR} && echo 'installed' || echo 'skipped')"
+    echo "  Namespace:    ${NAMESPACE}"
+    echo "  Datastores:   $(${SKIP_DATASTORES} && echo 'skipped' || echo 'deployed')"
+    echo "  Feast CR:     $(${SKIP_FEAST} && echo 'skipped' || echo 'deployed')"
+    echo "  Operator:     $(${INSTALL_OPERATOR} && echo 'installed' || echo 'skipped')"
+    echo "  Feast Apply:  $(${SKIP_APPLY} || ${SKIP_FEAST} && echo 'skipped' || echo 'triggered')"
     echo "=============================================="
     echo ""
     echo "Useful commands:"
@@ -211,6 +275,7 @@ main() {
     install_operator
     deploy_datastores
     deploy_feast
+    run_feast_apply
     print_summary
 
     ok "Setup complete!"
