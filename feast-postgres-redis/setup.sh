@@ -23,7 +23,7 @@ Options:
       --skip-feast           Skip deploying the FeatureStore CR (deploy only datastores)
       --skip-apply           Skip running 'feast apply' after deployment
       --wait SECONDS         Seconds to wait for datastore pods to be ready (default: 120)
-      --apply-timeout SECS   Seconds to wait for the Feast deployment before running apply (default: 300)
+      --apply-timeout SECS   Seconds to wait for Feast deployment and apply Job (default: 300)
   -h, --help                 Show this help message
 
 Examples:
@@ -217,20 +217,53 @@ run_feast_apply() {
     local fs_name
     fs_name=$(get_featurestore_name)
     local deploy_name="feast-${fs_name}"
+    local feast_label="feast.dev/name=${fs_name}"
 
     info "Waiting for deployment '${deploy_name}' to be available..."
     ${KUBECTL_CMD} wait --for=condition=available "deployment/${deploy_name}" \
         -n "${NAMESPACE}" \
         --timeout="${APPLY_TIMEOUT}s" 2>/dev/null || \
         { warn "Deployment '${deploy_name}' not available yet"; return 0; }
+    ok "Deployment '${deploy_name}' is available"
 
-    info "Running 'feast apply' via exec into deployment/${deploy_name}..."
-    if ${KUBECTL_CMD} exec "deploy/${deploy_name}" -n "${NAMESPACE}" \
-        -- bash -c "feast apply" 2>&1; then
+    info "Looking for the feast-apply CronJob created by the operator..."
+    local cronjob_name=""
+    for i in $(seq 1 12); do
+        cronjob_name=$(${KUBECTL_CMD} get cronjobs -n "${NAMESPACE}" \
+            -l "${feast_label}" \
+            -o jsonpath='{.items[0].metadata.name}' 2>/dev/null) || true
+
+        if [[ -n "${cronjob_name}" ]]; then
+            break
+        fi
+        info "  Waiting for CronJob to be created... (attempt ${i}/12)"
+        sleep 10
+    done
+
+    if [[ -z "${cronjob_name}" ]]; then
+        warn "No feast-apply CronJob found. You may need to trigger 'feast apply' manually."
+        warn "  ${KUBECTL_CMD} exec deploy/${deploy_name} -n ${NAMESPACE} -- bash -c 'feast apply'"
+        return 0
+    fi
+
+    ok "Found CronJob: ${cronjob_name}"
+
+    local job_name="feast-apply-$(date +%s)"
+    info "Creating one-off Job '${job_name}' from CronJob '${cronjob_name}'..."
+    ${KUBECTL_CMD} create job "${job_name}" \
+        --from="cronjob/${cronjob_name}" \
+        -n "${NAMESPACE}"
+
+    info "Waiting for feast-apply Job to complete (timeout: ${APPLY_TIMEOUT}s)..."
+    if ${KUBECTL_CMD} wait --for=condition=complete "job/${job_name}" \
+        -n "${NAMESPACE}" \
+        --timeout="${APPLY_TIMEOUT}s" 2>/dev/null; then
         ok "feast apply completed successfully"
     else
-        warn "feast apply failed. You can retry manually with:"
-        warn "  ${KUBECTL_CMD} exec deploy/${deploy_name} -n ${NAMESPACE} -- bash -c 'feast apply'"
+        warn "feast-apply Job did not complete within ${APPLY_TIMEOUT}s"
+        warn "Check Job status:"
+        warn "  ${KUBECTL_CMD} get job ${job_name} -n ${NAMESPACE}"
+        warn "  ${KUBECTL_CMD} logs job/${job_name} -n ${NAMESPACE}"
     fi
 }
 
