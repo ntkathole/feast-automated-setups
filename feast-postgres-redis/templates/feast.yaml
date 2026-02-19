@@ -18,6 +18,8 @@ kind: FeatureStore
 metadata:
   name: example
   namespace: __NAMESPACE__
+  labels:
+    feature-store-ui: enabled
 spec:
   feastProject: credit_scoring_local
   feastProjectDir:
