@@ -45,7 +45,7 @@ KUBECTL_CMD=oc ./setup.sh -n my-feast -c -o
 | `--skip-feast` | Skip FeatureStore CR deployment (deploy only datastores) |
 | `--skip-apply` | Skip running `feast apply` after deployment |
 | `--wait SECONDS` | Timeout for pod readiness checks (default: 120) |
-| `--apply-timeout SECS` | Timeout for the `feast apply` Job to complete (default: 300) |
+| `--apply-timeout SECS` | Timeout waiting for the Feast deployment before running apply (default: 300) |
 
 ## Teardown Options
 
@@ -73,7 +73,7 @@ KUBECTL_CMD=oc ./setup.sh -n my-feast -c -o
 4. **Operator install** (optional) — applies `infra/feast-operator/dist/install.yaml`
 5. **Datastore deployment** — applies PostgreSQL and Redis manifests, waits for pods to be ready
 6. **FeatureStore deployment** — applies the Feast Secret and FeatureStore CR, waits for all pods to be Ready
-7. **Feast apply** — discovers the operator-created CronJob, triggers a one-off Job to run `feast apply`, and waits for completion
+7. **Feast apply** — waits for the Feast deployment to be available, then execs `feast apply` directly in the pod
 
 ## Customization
 

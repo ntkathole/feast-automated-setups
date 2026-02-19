@@ -23,7 +23,7 @@ Options:
       --skip-feast           Skip deploying the FeatureStore CR (deploy only datastores)
       --skip-apply           Skip running 'feast apply' after deployment
       --wait SECONDS         Seconds to wait for datastore pods to be ready (default: 120)
-      --apply-timeout SECS   Seconds to wait for the feast-apply Job to complete (default: 300)
+      --apply-timeout SECS   Seconds to wait for the Feast deployment before running apply (default: 300)
   -h, --help                 Show this help message
 
 Examples:
@@ -161,6 +161,10 @@ deploy_datastores() {
     ok "Datastores are ready"
 }
 
+get_featurestore_name() {
+    grep -A1 'kind: FeatureStore' "${GENERATED_DIR}/feast.yaml" | grep 'name:' | head -1 | awk '{print $2}'
+}
+
 deploy_feast() {
     if ${SKIP_FEAST}; then
         info "Skipping FeatureStore deployment (--skip-feast)"
@@ -171,12 +175,17 @@ deploy_feast() {
     ${KUBECTL_CMD} apply -f "${GENERATED_DIR}/feast.yaml"
     ok "FeatureStore CR applied"
 
+    local fs_name
+    fs_name=$(get_featurestore_name)
+    local feast_label="feast.dev/name=${fs_name}"
+    info "Using label selector: ${feast_label}"
+
     info "Waiting for FeatureStore pods to start (this may take a few minutes)..."
     sleep 10
 
     local feast_ready=false
     for i in $(seq 1 12); do
-        if ${KUBECTL_CMD} get pods -n "${NAMESPACE}" -l app.kubernetes.io/managed-by=feast-operator 2>/dev/null | grep -q "Running"; then
+        if ${KUBECTL_CMD} get pods -n "${NAMESPACE}" -l "${feast_label}" 2>/dev/null | grep -q "Running"; then
             feast_ready=true
             break
         fi
@@ -193,7 +202,7 @@ deploy_feast() {
 
     info "Waiting for all FeatureStore pods to be Ready..."
     ${KUBECTL_CMD} wait --for=condition=ready pod \
-        -l app.kubernetes.io/managed-by=feast-operator \
+        -l "${feast_label}" \
         -n "${NAMESPACE}" \
         --timeout="${WAIT_TIMEOUT}s" 2>/dev/null || \
         warn "Some FeatureStore pods may not be fully ready yet"
@@ -205,44 +214,23 @@ run_feast_apply() {
         return 0
     fi
 
-    info "Looking for the feast-apply CronJob created by the operator..."
+    local fs_name
+    fs_name=$(get_featurestore_name)
+    local deploy_name="feast-${fs_name}"
 
-    local cronjob_name=""
-    for i in $(seq 1 6); do
-        cronjob_name=$(${KUBECTL_CMD} get cronjobs -n "${NAMESPACE}" \
-            -l app.kubernetes.io/managed-by=feast-operator \
-            -o jsonpath='{.items[0].metadata.name}' 2>/dev/null) || true
-
-        if [[ -n "${cronjob_name}" ]]; then
-            break
-        fi
-        info "  Waiting for CronJob to be created... (attempt ${i}/6)"
-        sleep 10
-    done
-
-    if [[ -z "${cronjob_name}" ]]; then
-        warn "No feast-apply CronJob found. You may need to trigger 'feast apply' manually."
-        return 0
-    fi
-
-    ok "Found CronJob: ${cronjob_name}"
-
-    local job_name="feast-apply-$(date +%s)"
-    info "Creating one-off Job '${job_name}' from CronJob '${cronjob_name}'..."
-    ${KUBECTL_CMD} create job "${job_name}" \
-        --from="cronjob/${cronjob_name}" \
-        -n "${NAMESPACE}"
-
-    info "Waiting for feast-apply Job to complete (timeout: ${APPLY_TIMEOUT}s)..."
-    if ${KUBECTL_CMD} wait --for=condition=complete "job/${job_name}" \
+    info "Waiting for deployment '${deploy_name}' to be available..."
+    ${KUBECTL_CMD} wait --for=condition=available "deployment/${deploy_name}" \
         -n "${NAMESPACE}" \
-        --timeout="${APPLY_TIMEOUT}s" 2>/dev/null; then
+        --timeout="${APPLY_TIMEOUT}s" 2>/dev/null || \
+        { warn "Deployment '${deploy_name}' not available yet"; return 0; }
+
+    info "Running 'feast apply' via exec into deployment/${deploy_name}..."
+    if ${KUBECTL_CMD} exec "deploy/${deploy_name}" -n "${NAMESPACE}" \
+        -- bash -c "feast apply" 2>&1; then
         ok "feast apply completed successfully"
     else
-        warn "feast-apply Job did not complete within ${APPLY_TIMEOUT}s"
-        warn "Check Job status:"
-        warn "  ${KUBECTL_CMD} get job ${job_name} -n ${NAMESPACE}"
-        warn "  ${KUBECTL_CMD} logs job/${job_name} -n ${NAMESPACE}"
+        warn "feast apply failed. You can retry manually with:"
+        warn "  ${KUBECTL_CMD} exec deploy/${deploy_name} -n ${NAMESPACE} -- bash -c 'feast apply'"
     fi
 }
 
@@ -261,7 +249,7 @@ print_summary() {
     echo "Useful commands:"
     echo "  ${KUBECTL_CMD} get pods -n ${NAMESPACE}"
     echo "  ${KUBECTL_CMD} get featurestore -n ${NAMESPACE}"
-    echo "  ${KUBECTL_CMD} logs -n ${NAMESPACE} -l app.kubernetes.io/managed-by=feast-operator"
+    echo "  ${KUBECTL_CMD} logs -n ${NAMESPACE} -l feast.dev/name"
     echo ""
 }
 

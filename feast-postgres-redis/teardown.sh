@@ -74,7 +74,7 @@ remove_feast() {
 
     info "Waiting for operator-managed pods to terminate..."
     for i in $(seq 1 6); do
-        if ! ${KUBECTL_CMD} get pods -n "${NAMESPACE}" -l app.kubernetes.io/managed-by=feast-operator 2>/dev/null | grep -q .; then
+        if ! ${KUBECTL_CMD} get pods -n "${NAMESPACE}" -l feast.dev/name 2>/dev/null | grep -q .; then
             break
         fi
         sleep 5

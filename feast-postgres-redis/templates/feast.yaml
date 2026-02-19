@@ -16,7 +16,7 @@ stringData:
 apiVersion: feast.dev/v1alpha1
 kind: FeatureStore
 metadata:
-  name: example
+  name: credit-scoring
   namespace: __NAMESPACE__
   labels:
     feature-store-ui: enabled
