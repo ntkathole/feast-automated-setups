@@ -85,6 +85,13 @@ docker info >/dev/null 2>&1           || fail "Docker daemon is not running"
 
 success "All prerequisites satisfied"
 
+# On Linux, containers need --add-host to reach the host; on macOS Docker
+# Desktop, host.docker.internal resolves natively.
+DOCKER_HOST_FLAG=""
+if [[ "$(uname -s)" == "Linux" ]]; then
+    DOCKER_HOST_FLAG="--add-host=host.docker.internal:host-gateway"
+fi
+
 # ── 2. Clean previous run ───────────────────────────────────────────
 if [[ -f "$PID_FILE" ]]; then
     OLD_PID=$(cat "$PID_FILE")
@@ -96,8 +103,8 @@ if [[ -f "$PID_FILE" ]]; then
     rm -f "$PID_FILE"
 fi
 
-docker rm -f "$CONTAINER_NAME_PROMETHEUS" 2>/dev/null || true
-docker rm -f "$CONTAINER_NAME_GRAFANA"    2>/dev/null || true
+docker rm -f -v "$CONTAINER_NAME_PROMETHEUS" 2>/dev/null || true
+docker rm -f -v "$CONTAINER_NAME_GRAFANA"    2>/dev/null || true
 
 # ── 3. Create workspace ─────────────────────────────────────────────
 info "Initialising Feast feature repository …"
@@ -191,7 +198,7 @@ docker run -d \
     --name "$CONTAINER_NAME_PROMETHEUS" \
     -p "${PROMETHEUS_PORT}:9090" \
     -v "${PROM_CONFIG}:/etc/prometheus/prometheus.yml:ro" \
-    --add-host=host.docker.internal:host-gateway \
+    ${DOCKER_HOST_FLAG:+"$DOCKER_HOST_FLAG"} \
     prom/prometheus:latest \
     --config.file=/etc/prometheus/prometheus.yml \
     --web.enable-lifecycle \
@@ -227,7 +234,7 @@ if [[ "$SKIP_GRAFANA" == "false" ]]; then
         -e GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/var/lib/grafana/dashboards/feast.json \
         -v "${GRAFANA_PROV_DIR}:/etc/grafana/provisioning:ro" \
         -v "${GRAFANA_DASH_DIR}:/var/lib/grafana/dashboards:ro" \
-        --add-host=host.docker.internal:host-gateway \
+        ${DOCKER_HOST_FLAG:+"$DOCKER_HOST_FLAG"} \
         grafana/grafana:latest \
         > /dev/null
 
@@ -266,6 +273,40 @@ fi
 echo ""
 echo -e "  Logs:              ${WORK_DIR}/logs/"
 echo -e "  Workspace:         ${WORK_DIR}/feast_demo/"
+echo ""
+if [[ "$SKIP_GRAFANA" == "false" ]]; then
+echo -e "  Grafana dashboard: ${BLUE}http://localhost:${GRAFANA_PORT}/d/feast-metrics${NC}"
+echo ""
+fi
+echo -e "${GREEN}  PromQL queries to try in Prometheus (http://localhost:${PROMETHEUS_PORT}):${NC}"
+echo ""
+echo -e "  ${YELLOW}# Request rate by endpoint${NC}"
+echo    "  rate(feast_feature_server_request_total[1m])"
+echo ""
+echo -e "  ${YELLOW}# p95 request latency${NC}"
+echo    "  histogram_quantile(0.95, sum(rate(feast_feature_server_request_latency_seconds_bucket[1m])) by (le))"
+echo ""
+echo -e "  ${YELLOW}# p95 latency broken down by feature count${NC}"
+echo    "  histogram_quantile(0.95, sum(rate(feast_feature_server_request_latency_seconds_bucket[1m])) by (le, feature_count))"
+echo ""
+echo -e "  ${YELLOW}# CPU and memory usage${NC}"
+echo    "  feast_feature_server_cpu_usage"
+echo    "  feast_feature_server_memory_usage"
+echo ""
+echo -e "  ${YELLOW}# Feature freshness (staleness per feature view)${NC}"
+echo    "  feast_feature_freshness_seconds"
+echo ""
+echo -e "  ${YELLOW}# Materialization success/failure count${NC}"
+echo    "  feast_materialization_total"
+echo ""
+echo -e "  ${YELLOW}# Online feature request rate${NC}"
+echo    "  rate(feast_online_features_request_total[1m])"
+echo ""
+echo -e "  ${YELLOW}# Average entities per request${NC}"
+echo    "  feast_online_features_entity_count_sum / feast_online_features_entity_count_count"
+echo ""
+echo -e "  ${YELLOW}# Push requests by source and mode${NC}"
+echo    "  feast_push_request_total"
 echo ""
 echo -e "  To stop everything: ${YELLOW}./teardown.sh${NC}"
 echo ""

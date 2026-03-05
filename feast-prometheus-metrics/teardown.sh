@@ -80,12 +80,12 @@ for CONTAINER in "$CONTAINER_NAME_GRAFANA" "$CONTAINER_NAME_PROMETHEUS"; do
             docker stop "$CONTAINER" > /dev/null 2>&1 || true
             success "Stopped $CONTAINER (kept)"
         else
-            docker rm -f "$CONTAINER" > /dev/null 2>&1 || true
+            docker rm -f -v "$CONTAINER" > /dev/null 2>&1 || true
             success "Removed $CONTAINER"
         fi
     elif docker ps -aq -f name="$CONTAINER" 2>/dev/null | grep -q .; then
         if [[ "$KEEP_CONTAINERS" == "false" ]]; then
-            docker rm -f "$CONTAINER" > /dev/null 2>&1 || true
+            docker rm -f -v "$CONTAINER" > /dev/null 2>&1 || true
             success "Removed stopped container $CONTAINER"
         fi
     else

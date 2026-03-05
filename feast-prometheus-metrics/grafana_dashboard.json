@@ -1,175 +1,269 @@
 {
-  "dashboard": {
-    "title": "Feast Feature Server Metrics",
-    "tags": ["feast", "feature-store", "prometheus"],
-    "timezone": "browser",
-    "refresh": "5s",
-    "time": { "from": "now-15m", "to": "now" },
-    "panels": [
-      {
-        "title": "CPU Usage per Worker",
-        "type": "timeseries",
-        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
-        "targets": [
-          {
-            "expr": "feast_feature_server_cpu_usage",
-            "legendFormat": "pid={{pid}}"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": { "unit": "percent", "custom": { "fillOpacity": 20 } }
+  "id": null,
+  "uid": "feast-metrics",
+  "title": "Feast Feature Server Metrics",
+  "tags": ["feast", "feature-store", "prometheus"],
+  "timezone": "browser",
+  "refresh": "5s",
+  "time": { "from": "now-15m", "to": "now" },
+  "editable": true,
+  "schemaVersion": 39,
+  "panels": [
+    {
+      "id": 1,
+      "title": "CPU Usage per Worker",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "feast_feature_server_cpu_usage",
+          "legendFormat": "pid={{pid}}",
+          "refId": "A"
         }
-      },
-      {
-        "title": "Memory Usage per Worker",
-        "type": "timeseries",
-        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
-        "targets": [
-          {
-            "expr": "feast_feature_server_memory_usage",
-            "legendFormat": "pid={{pid}}"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": { "unit": "percent", "custom": { "fillOpacity": 20 } }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percent", "custom": { "fillOpacity": 20, "lineWidth": 2 } }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Memory Usage per Worker",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "feast_feature_server_memory_usage",
+          "legendFormat": "pid={{pid}}",
+          "refId": "A"
         }
-      },
-      {
-        "title": "Request Rate (per second)",
-        "type": "timeseries",
-        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
-        "targets": [
-          {
-            "expr": "rate(feast_feature_server_request_total[1m])",
-            "legendFormat": "{{endpoint}} [{{status}}]"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": { "unit": "reqps", "custom": { "fillOpacity": 10 } }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percent", "custom": { "fillOpacity": 20, "lineWidth": 2 } }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Request Rate (per second)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "rate(feast_feature_server_request_total[1m])",
+          "legendFormat": "{{endpoint}} [{{status}}]",
+          "refId": "A"
         }
-      },
-      {
-        "title": "Total Requests by Status",
-        "type": "stat",
-        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
-        "targets": [
-          {
-            "expr": "feast_feature_server_request_total",
-            "legendFormat": "{{endpoint}} [{{status}}]"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": { "unit": "short" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "custom": { "fillOpacity": 10, "lineWidth": 2 } }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Total Requests by Status",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "feast_feature_server_request_total",
+          "legendFormat": "{{endpoint}} [{{status}}]",
+          "refId": "A"
         }
-      },
-      {
-        "title": "Request Latency Percentiles",
-        "type": "timeseries",
-        "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
-        "targets": [
-          {
-            "expr": "histogram_quantile(0.50, sum(rate(feast_feature_server_request_latency_seconds_bucket[1m])) by (le))",
-            "legendFormat": "p50"
-          },
-          {
-            "expr": "histogram_quantile(0.95, sum(rate(feast_feature_server_request_latency_seconds_bucket[1m])) by (le))",
-            "legendFormat": "p95"
-          },
-          {
-            "expr": "histogram_quantile(0.99, sum(rate(feast_feature_server_request_latency_seconds_bucket[1m])) by (le))",
-            "legendFormat": "p99"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": { "unit": "s", "custom": { "fillOpacity": 10 } }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short" }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Request Latency Percentiles",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.50, sum(rate(feast_feature_server_request_latency_seconds_bucket[1m])) by (le))",
+          "legendFormat": "p50",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.95, sum(rate(feast_feature_server_request_latency_seconds_bucket[1m])) by (le))",
+          "legendFormat": "p95",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.99, sum(rate(feast_feature_server_request_latency_seconds_bucket[1m])) by (le))",
+          "legendFormat": "p99",
+          "refId": "C"
         }
-      },
-      {
-        "title": "Latency by Feature Count",
-        "type": "timeseries",
-        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
-        "targets": [
-          {
-            "expr": "histogram_quantile(0.95, sum(rate(feast_feature_server_request_latency_seconds_bucket[1m])) by (le, feature_count))",
-            "legendFormat": "p95 (features={{feature_count}})"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": { "unit": "s", "custom": { "fillOpacity": 10 } }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s", "custom": { "fillOpacity": 10, "lineWidth": 2 } }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Latency by Feature Count (p95)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.95, sum(rate(feast_feature_server_request_latency_seconds_bucket[1m])) by (le, feature_count))",
+          "legendFormat": "p95 (features={{feature_count}})",
+          "refId": "A"
         }
-      },
-      {
-        "title": "Online Feature Requests (rate)",
-        "type": "timeseries",
-        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
-        "targets": [
-          {
-            "expr": "rate(feast_online_features_request_total[1m])",
-            "legendFormat": "requests/sec"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": { "unit": "reqps", "custom": { "fillOpacity": 20 } }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s", "custom": { "fillOpacity": 10, "lineWidth": 2 } }
+      }
+    },
+    {
+      "id": 7,
+      "title": "Online Feature Requests (rate)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "rate(feast_online_features_request_total[1m])",
+          "legendFormat": "requests/sec",
+          "refId": "A"
         }
-      },
-      {
-        "title": "Avg Entities per Request",
-        "type": "gauge",
-        "gridPos": { "h": 8, "w": 8, "x": 0, "y": 32 },
-        "targets": [
-          {
-            "expr": "feast_online_features_entity_count_sum / feast_online_features_entity_count_count",
-            "legendFormat": "avg entities"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": { "unit": "short", "thresholds": { "steps": [{"value": 0, "color": "green"}, {"value": 50, "color": "yellow"}, {"value": 100, "color": "red"}] } }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "custom": { "fillOpacity": 20, "lineWidth": 2 } }
+      }
+    },
+    {
+      "id": 8,
+      "title": "Avg Entities per Request",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 32 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "feast_online_features_entity_count_sum / feast_online_features_entity_count_count",
+          "legendFormat": "avg entities",
+          "refId": "A"
         }
-      },
-      {
-        "title": "Feature Freshness (staleness)",
-        "type": "timeseries",
-        "gridPos": { "h": 8, "w": 16, "x": 8, "y": 32 },
-        "targets": [
-          {
-            "expr": "feast_feature_freshness_seconds",
-            "legendFormat": "{{feature_view}}"
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "value": null, "color": "green" },
+              { "value": 50, "color": "yellow" },
+              { "value": 100, "color": "red" }
+            ]
           }
-        ],
-        "fieldConfig": {
-          "defaults": { "unit": "s", "custom": { "fillOpacity": 10 } }
-        }
-      },
-      {
-        "title": "Materialization Runs",
-        "type": "stat",
-        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 40 },
-        "targets": [
-          {
-            "expr": "feast_materialization_total",
-            "legendFormat": "{{feature_view}} [{{status}}]"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": { "unit": "short" }
-        }
-      },
-      {
-        "title": "Materialization Duration",
-        "type": "timeseries",
-        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 40 },
-        "targets": [
-          {
-            "expr": "feast_materialization_duration_seconds_sum",
-            "legendFormat": "{{feature_view}}"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": { "unit": "s", "custom": { "fillOpacity": 15 } }
         }
       }
-    ],
-    "schemaVersion": 39
-  },
-  "overwrite": true
+    },
+    {
+      "id": 9,
+      "title": "Feature Freshness (staleness)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 16, "x": 8, "y": 32 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "feast_feature_freshness_seconds",
+          "legendFormat": "{{feature_view}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s", "custom": { "fillOpacity": 10, "lineWidth": 2 } }
+      }
+    },
+    {
+      "id": 10,
+      "title": "Materialization Runs",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 40 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "feast_materialization_total",
+          "legendFormat": "{{feature_view}} [{{status}}]",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short" }
+      }
+    },
+    {
+      "id": 11,
+      "title": "Materialization Duration",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 40 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "feast_materialization_duration_seconds_sum",
+          "legendFormat": "{{feature_view}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s", "custom": { "fillOpacity": 15, "lineWidth": 2 } }
+      }
+    },
+    {
+      "id": 12,
+      "title": "Push Requests by Source & Mode",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 48 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "feast_push_request_total",
+          "legendFormat": "{{push_source}} [{{mode}}]",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short" }
+      }
+    },
+    {
+      "id": 13,
+      "title": "Push Request Rate",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 48 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "rate(feast_push_request_total[1m])",
+          "legendFormat": "{{push_source}} [{{mode}}]",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "custom": { "fillOpacity": 15, "lineWidth": 2 } }
+      }
+    }
+  ]
 }

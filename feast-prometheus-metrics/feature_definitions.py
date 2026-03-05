@@ -15,14 +15,11 @@ from feast import (
     FeatureView,
     Field,
     FileSource,
-    Project,
     PushSource,
     RequestSource,
 )
 from feast.on_demand_feature_view import on_demand_feature_view
 from feast.types import Float32, Float64, Int64
-
-project = Project(name="my_project", description="Feast Prometheus metrics demo")
 
 driver = Entity(name="driver", join_keys=["driver_id"])
 
