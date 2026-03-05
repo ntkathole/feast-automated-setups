@@ -1,0 +1,175 @@
+{
+  "dashboard": {
+    "title": "Feast Feature Server Metrics",
+    "tags": ["feast", "feature-store", "prometheus"],
+    "timezone": "browser",
+    "refresh": "5s",
+    "time": { "from": "now-15m", "to": "now" },
+    "panels": [
+      {
+        "title": "CPU Usage per Worker",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+        "targets": [
+          {
+            "expr": "feast_feature_server_cpu_usage",
+            "legendFormat": "pid={{pid}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": { "unit": "percent", "custom": { "fillOpacity": 20 } }
+        }
+      },
+      {
+        "title": "Memory Usage per Worker",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+        "targets": [
+          {
+            "expr": "feast_feature_server_memory_usage",
+            "legendFormat": "pid={{pid}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": { "unit": "percent", "custom": { "fillOpacity": 20 } }
+        }
+      },
+      {
+        "title": "Request Rate (per second)",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+        "targets": [
+          {
+            "expr": "rate(feast_feature_server_request_total[1m])",
+            "legendFormat": "{{endpoint}} [{{status}}]"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": { "unit": "reqps", "custom": { "fillOpacity": 10 } }
+        }
+      },
+      {
+        "title": "Total Requests by Status",
+        "type": "stat",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+        "targets": [
+          {
+            "expr": "feast_feature_server_request_total",
+            "legendFormat": "{{endpoint}} [{{status}}]"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": { "unit": "short" }
+        }
+      },
+      {
+        "title": "Request Latency Percentiles",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(feast_feature_server_request_latency_seconds_bucket[1m])) by (le))",
+            "legendFormat": "p50"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(feast_feature_server_request_latency_seconds_bucket[1m])) by (le))",
+            "legendFormat": "p95"
+          },
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(feast_feature_server_request_latency_seconds_bucket[1m])) by (le))",
+            "legendFormat": "p99"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": { "unit": "s", "custom": { "fillOpacity": 10 } }
+        }
+      },
+      {
+        "title": "Latency by Feature Count",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(feast_feature_server_request_latency_seconds_bucket[1m])) by (le, feature_count))",
+            "legendFormat": "p95 (features={{feature_count}})"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": { "unit": "s", "custom": { "fillOpacity": 10 } }
+        }
+      },
+      {
+        "title": "Online Feature Requests (rate)",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+        "targets": [
+          {
+            "expr": "rate(feast_online_features_request_total[1m])",
+            "legendFormat": "requests/sec"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": { "unit": "reqps", "custom": { "fillOpacity": 20 } }
+        }
+      },
+      {
+        "title": "Avg Entities per Request",
+        "type": "gauge",
+        "gridPos": { "h": 8, "w": 8, "x": 0, "y": 32 },
+        "targets": [
+          {
+            "expr": "feast_online_features_entity_count_sum / feast_online_features_entity_count_count",
+            "legendFormat": "avg entities"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": { "unit": "short", "thresholds": { "steps": [{"value": 0, "color": "green"}, {"value": 50, "color": "yellow"}, {"value": 100, "color": "red"}] } }
+        }
+      },
+      {
+        "title": "Feature Freshness (staleness)",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 16, "x": 8, "y": 32 },
+        "targets": [
+          {
+            "expr": "feast_feature_freshness_seconds",
+            "legendFormat": "{{feature_view}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": { "unit": "s", "custom": { "fillOpacity": 10 } }
+        }
+      },
+      {
+        "title": "Materialization Runs",
+        "type": "stat",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 40 },
+        "targets": [
+          {
+            "expr": "feast_materialization_total",
+            "legendFormat": "{{feature_view}} [{{status}}]"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": { "unit": "short" }
+        }
+      },
+      {
+        "title": "Materialization Duration",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 40 },
+        "targets": [
+          {
+            "expr": "feast_materialization_duration_seconds_sum",
+            "legendFormat": "{{feature_view}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": { "unit": "s", "custom": { "fillOpacity": 15 } }
+        }
+      }
+    ],
+    "schemaVersion": 39
+  },
+  "overwrite": true
+}
