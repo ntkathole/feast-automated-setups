@@ -41,23 +41,45 @@ def post_json(url: str, path: str, payload: dict) -> int:
 
 
 def send_online_features(url: str) -> None:
-    """Send /get-online-features with varying entity counts."""
+    """Send /get-online-features with varying entity counts.
+
+    Alternates between plain batch features and requests that include
+    the on-demand feature view (transformed_conv_rate), which requires
+    request-time data (val_to_add, val_to_add_2) and triggers read-path
+    ODFV transformation.
+    """
     entity_count = random.choice([1, 2, 3, 5, 10])
     entity_ids = [random.randint(1001, 1010) for _ in range(entity_count)]
 
-    payload = {
-        "features": [
-            "driver_hourly_stats:conv_rate",
-            "driver_hourly_stats:acc_rate",
-            "driver_hourly_stats:avg_daily_trips",
-        ],
-        "entities": {"driver_id": entity_ids},
-    }
+    use_odfv = random.random() < 0.5
+    if use_odfv:
+        payload = {
+            "features": [
+                "driver_hourly_stats:conv_rate",
+                "driver_hourly_stats:acc_rate",
+                "transformed_conv_rate:conv_rate_plus_val1",
+                "transformed_conv_rate:conv_rate_plus_val2",
+            ],
+            "entities": {
+                "driver_id": entity_ids,
+                "val_to_add": [random.randint(1, 10) for _ in range(entity_count)],
+                "val_to_add_2": [random.randint(1, 10) for _ in range(entity_count)],
+            },
+        }
+    else:
+        payload = {
+            "features": [
+                "driver_hourly_stats:conv_rate",
+                "driver_hourly_stats:acc_rate",
+                "driver_hourly_stats:avg_daily_trips",
+            ],
+            "entities": {"driver_id": entity_ids},
+        }
     status = post_json(url, "/get-online-features", payload)
     if status == 200:
-        sys.stdout.write(".")
+        sys.stdout.write("T" if use_odfv else ".")
     else:
-        sys.stdout.write("x")
+        sys.stdout.write("t" if use_odfv else "x")
     sys.stdout.flush()
 
 
@@ -104,7 +126,7 @@ def main():
     args = parser.parse_args()
 
     print(f"Generating traffic to {args.url} for {args.duration}s (~{args.rps} req/s)")
-    print("Legend:  . = online features   P/p = push ok/fail   M/m = materialize ok/fail")
+    print("Legend:  . = online features   T/t = online+ODFV ok/fail   P/p = push ok/fail   M/m = materialize ok/fail")
     print()
 
     start = time.monotonic()

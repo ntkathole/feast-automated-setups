@@ -1,8 +1,9 @@
 """
 Simplified feature definitions for the Feast Prometheus metrics demo.
 
-Provides two feature views (one batch, one push-based) with basic types
-to exercise all metric categories without complex type serialization.
+Provides two feature views (one batch, one push-based) and a read-path
+on-demand feature view with track_metrics=True to exercise all metric
+categories including ODFV transformation timing.
 """
 
 from datetime import timedelta
@@ -53,12 +54,17 @@ input_request = RequestSource(
 )
 
 
+# Read-path ODFV (Pandas mode) with track_metrics=True
+# This ODFV triggers on every /get-online-features request that includes
+# its features, and the transformation duration is captured by
+# feast_feature_server_transformation_duration_seconds.
 @on_demand_feature_view(
     sources=[driver_stats_fv, input_request],
     schema=[
         Field(name="conv_rate_plus_val1", dtype=Float64),
         Field(name="conv_rate_plus_val2", dtype=Float64),
     ],
+    track_metrics=True,
 )
 def transformed_conv_rate(inputs: pd.DataFrame) -> pd.DataFrame:
     df = pd.DataFrame()
@@ -66,19 +72,6 @@ def transformed_conv_rate(inputs: pd.DataFrame) -> pd.DataFrame:
     df["conv_rate_plus_val2"] = inputs["conv_rate"] + inputs["val_to_add_2"]
     return df
 
-
-driver_activity_v1 = FeatureService(
-    name="driver_activity_v1",
-    features=[
-        driver_stats_fv[["conv_rate"]],
-        transformed_conv_rate,
-    ],
-)
-
-driver_activity_v2 = FeatureService(
-    name="driver_activity_v2",
-    features=[driver_stats_fv, transformed_conv_rate],
-)
 
 driver_stats_push_source = PushSource(
     name="driver_stats_push_source",
@@ -97,6 +90,19 @@ driver_stats_fresh_fv = FeatureView(
     online=True,
     source=driver_stats_push_source,
     tags={"team": "driver_performance"},
+)
+
+driver_activity_v1 = FeatureService(
+    name="driver_activity_v1",
+    features=[
+        driver_stats_fv[["conv_rate"]],
+        transformed_conv_rate,
+    ],
+)
+
+driver_activity_v2 = FeatureService(
+    name="driver_activity_v2",
+    features=[driver_stats_fv, transformed_conv_rate],
 )
 
 driver_activity_v3 = FeatureService(

@@ -149,9 +149,105 @@
     },
     {
       "id": 8,
+      "title": "Online Store Read Latency (p50 / p95 / p99)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.50, sum(rate(feast_feature_server_online_store_read_duration_seconds_bucket[1m])) by (le))",
+          "legendFormat": "p50",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.95, sum(rate(feast_feature_server_online_store_read_duration_seconds_bucket[1m])) by (le))",
+          "legendFormat": "p95",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.99, sum(rate(feast_feature_server_online_store_read_duration_seconds_bucket[1m])) by (le))",
+          "legendFormat": "p99",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s", "custom": { "fillOpacity": 10, "lineWidth": 2 } }
+      }
+    },
+    {
+      "id": 9,
+      "title": "ODFV Read Transform Latency by ODFV (p95)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 32 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.95, sum(rate(feast_feature_server_transformation_duration_seconds_bucket[1m])) by (le, odfv_name))",
+          "legendFormat": "p95 {{odfv_name}}",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.50, sum(rate(feast_feature_server_transformation_duration_seconds_bucket[1m])) by (le, odfv_name))",
+          "legendFormat": "p50 {{odfv_name}}",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s", "custom": { "fillOpacity": 10, "lineWidth": 2 } }
+      }
+    },
+    {
+      "id": 10,
+      "title": "ODFV Read Transform Rate",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 40 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "rate(feast_feature_server_transformation_duration_seconds_count[1m])",
+          "legendFormat": "{{odfv_name}} ({{mode}})",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ops", "custom": { "fillOpacity": 15, "lineWidth": 2 } }
+      }
+    },
+    {
+      "id": 11,
+      "title": "ODFV Write Transform Latency by ODFV (p95)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 40 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.95, sum(rate(feast_feature_server_write_transformation_duration_seconds_bucket[1m])) by (le, odfv_name))",
+          "legendFormat": "p95 {{odfv_name}}",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.50, sum(rate(feast_feature_server_write_transformation_duration_seconds_bucket[1m])) by (le, odfv_name))",
+          "legendFormat": "p50 {{odfv_name}}",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s", "custom": { "fillOpacity": 10, "lineWidth": 2 } }
+      }
+    },
+    {
+      "id": 12,
       "title": "Avg Entities per Request",
       "type": "gauge",
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 32 },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 48 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
@@ -176,10 +272,10 @@
       }
     },
     {
-      "id": 9,
+      "id": 13,
       "title": "Feature Freshness (staleness)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 16, "x": 8, "y": 32 },
+      "gridPos": { "h": 8, "w": 16, "x": 8, "y": 48 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
@@ -194,10 +290,10 @@
       }
     },
     {
-      "id": 10,
+      "id": 14,
       "title": "Materialization Runs",
       "type": "stat",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 40 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 56 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
@@ -212,10 +308,10 @@
       }
     },
     {
-      "id": 11,
+      "id": 15,
       "title": "Materialization Duration",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 40 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 56 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
@@ -230,10 +326,10 @@
       }
     },
     {
-      "id": 12,
+      "id": 16,
       "title": "Push Requests by Source & Mode",
       "type": "stat",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 48 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 64 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
@@ -248,10 +344,10 @@
       }
     },
     {
-      "id": 13,
+      "id": 17,
       "title": "Push Request Rate",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 48 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 64 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
@@ -263,6 +359,42 @@
       ],
       "fieldConfig": {
         "defaults": { "unit": "reqps", "custom": { "fillOpacity": 15, "lineWidth": 2 } }
+      }
+    },
+    {
+      "id": 18,
+      "title": "Latency Breakdown: Store Read vs Transform vs Total",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 72 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "rate(feast_feature_server_request_latency_seconds_sum[1m]) / rate(feast_feature_server_request_latency_seconds_count[1m])",
+          "legendFormat": "avg total request",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "rate(feast_feature_server_online_store_read_duration_seconds_sum[1m]) / rate(feast_feature_server_online_store_read_duration_seconds_count[1m])",
+          "legendFormat": "avg store read",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "rate(feast_feature_server_transformation_duration_seconds_sum[1m]) / rate(feast_feature_server_transformation_duration_seconds_count[1m])",
+          "legendFormat": "avg read transform",
+          "refId": "C"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "rate(feast_feature_server_write_transformation_duration_seconds_sum[1m]) / rate(feast_feature_server_write_transformation_duration_seconds_count[1m])",
+          "legendFormat": "avg write transform",
+          "refId": "D"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s", "custom": { "fillOpacity": 10, "lineWidth": 2 } }
       }
     }
   ]

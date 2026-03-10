@@ -105,6 +105,15 @@ The Grafana dashboard visualises the following Feast metrics:
 - `feast_online_features_request_total` — Online feature retrieval count
 - `feast_online_features_entity_count` — Entities per request histogram
 
+### Online Store Read
+- `feast_feature_server_online_store_read_duration_seconds` — Time spent reading from the online store (covers all table reads including parallel async)
+
+### ODFV Transformation (Read Path)
+- `feast_feature_server_transformation_duration_seconds` — Duration of on-demand feature view transformations during online serving, with `odfv_name` and `mode` labels. Only emitted for ODFVs with `track_metrics=True`.
+
+### ODFV Transformation (Write Path)
+- `feast_feature_server_write_transformation_duration_seconds` — Duration of on-demand feature view transformations during push/materialize (`write_to_online_store=True`), with `odfv_name` and `mode` labels. Only emitted for ODFVs with `track_metrics=True`.
+
 ### Push Metrics
 - `feast_push_request_total` — Push request count by source and mode
 
@@ -114,6 +123,22 @@ The Grafana dashboard visualises the following Feast metrics:
 
 ### Freshness Metrics
 - `feast_feature_freshness_seconds` — Feature staleness per feature view
+
+## Per-ODFV Metrics Opt-In
+
+ODFV transformation metrics are opt-in at the definition level via `track_metrics=True`:
+
+```python
+@on_demand_feature_view(
+    sources=[driver_stats_fv, input_request],
+    schema=[Field(name="output", dtype=Float64)],
+    track_metrics=True,   # enables transformation timing for this ODFV
+)
+def my_transform(inputs: pd.DataFrame) -> pd.DataFrame:
+    ...
+```
+
+When `track_metrics=False` (the default), zero metrics code runs for that ODFV — no timing, no Prometheus recording.
 
 ## Manual Traffic Generation
 
@@ -130,10 +155,15 @@ python3 generate_traffic.py --url http://localhost:6566 --duration 60 --rps 10
 Or send individual requests:
 
 ```bash
-# Online features
+# Online features (basic — no ODFV)
 curl -X POST http://localhost:6566/get-online-features \
   -H "Content-Type: application/json" \
   -d '{"features": ["driver_hourly_stats:conv_rate", "driver_hourly_stats:acc_rate"], "entities": {"driver_id": [1001, 1002]}}'
+
+# Online features with ODFV transform (requires request data)
+curl -X POST http://localhost:6566/get-online-features \
+  -H "Content-Type: application/json" \
+  -d '{"features": ["driver_hourly_stats:conv_rate", "transformed_conv_rate:conv_rate_plus_val1", "transformed_conv_rate:conv_rate_plus_val2"], "entities": {"driver_id": [1001, 1002], "val_to_add": [5, 10], "val_to_add_2": [3, 7]}}'
 
 # Push
 curl -X POST http://localhost:6566/push \
@@ -144,6 +174,27 @@ curl -X POST http://localhost:6566/push \
 curl -X POST http://localhost:6566/materialize-incremental \
   -H "Content-Type: application/json" \
   -d '{"end_ts": "2025-01-01T00:00:00+00:00"}'
+```
+
+## Example PromQL Queries
+
+```promql
+# Online store read p95 latency
+histogram_quantile(0.95, sum(rate(feast_feature_server_online_store_read_duration_seconds_bucket[1m])) by (le))
+
+# ODFV read-path transform p95 by ODFV name
+histogram_quantile(0.95, sum(rate(feast_feature_server_transformation_duration_seconds_bucket[1m])) by (le, odfv_name))
+
+# ODFV write-path transform p95 by ODFV name
+histogram_quantile(0.95, sum(rate(feast_feature_server_write_transformation_duration_seconds_bucket[1m])) by (le, odfv_name))
+
+# Latency breakdown: avg total vs avg store read vs avg transform
+rate(feast_feature_server_request_latency_seconds_sum[1m]) / rate(feast_feature_server_request_latency_seconds_count[1m])
+rate(feast_feature_server_online_store_read_duration_seconds_sum[1m]) / rate(feast_feature_server_online_store_read_duration_seconds_count[1m])
+rate(feast_feature_server_transformation_duration_seconds_sum[1m]) / rate(feast_feature_server_transformation_duration_seconds_count[1m])
+
+# Compare Python vs Pandas transform performance
+histogram_quantile(0.95, sum by (mode, le) (rate(feast_feature_server_transformation_duration_seconds_bucket[1m])))
 ```
 
 ## Metrics Configuration
