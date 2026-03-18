@@ -155,8 +155,49 @@ success "feast apply completed"
 info "Materialising features …"
 END_TS=$(python3 -c "from datetime import datetime, timezone; print(datetime.now(timezone.utc).isoformat())")
 START_TS=$(python3 -c "from datetime import datetime, timedelta, timezone; print((datetime.now(timezone.utc) - timedelta(hours=1)).isoformat())")
-feast materialize "$START_TS" "$END_TS" > "${LOG_DIR}/feast_materialize.log" 2>&1
+feast materialize -v driver_hourly_stats -v driver_hourly_stats_fresh "$START_TS" "$END_TS" > "${LOG_DIR}/feast_materialize.log" 2>&1
 success "Materialisation completed"
+
+# Bootstrap the write-path ODFV table in the online store.
+# feast apply doesn't create the SQLite table for write_to_online_store ODFVs,
+# and feast materialize fails due to entity-name vs join-key mismatch.
+# Create the table directly and seed one row via the SDK.
+info "Bootstrapping trip_score ODFV online store table …"
+python3 -c "
+import sqlite3, os
+from feast import FeatureStore
+import pandas as pd
+from datetime import datetime, timezone
+
+store = FeatureStore(repo_path='.')
+db_path = os.path.join('data', 'online_store.db')
+project = store.project
+
+conn = sqlite3.connect(db_path)
+table_name = f'{project}_trip_score'
+conn.execute(
+    f'CREATE TABLE IF NOT EXISTS \"{table_name}\" '
+    f'(entity_key BLOB, feature_name TEXT, value BLOB, vector_value BLOB, '
+    f'event_ts timestamp, created_ts timestamp, '
+    f'PRIMARY KEY(entity_key, feature_name))'
+)
+conn.execute(
+    f'CREATE INDEX IF NOT EXISTS \"{table_name}_ek\" ON \"{table_name}\" (entity_key)'
+)
+conn.commit()
+conn.close()
+
+df = pd.DataFrame({
+    'driver_id': [1001],
+    'conv_rate': [0.5],
+    'acc_rate': [0.8],
+    'avg_daily_trips': [10],
+    'event_timestamp': [datetime.now(timezone.utc)],
+    'created': [datetime.now(timezone.utc)],
+})
+store.write_to_online_store('trip_score', df)
+" > "${LOG_DIR}/bootstrap_trip_score.log" 2>&1
+success "trip_score ODFV table bootstrapped"
 
 # ── 7. Start feature server ─────────────────────────────────────────
 info "Starting Feast feature server (port ${FEATURE_SERVER_PORT}, metrics on ${METRICS_PORT}) …"
@@ -250,11 +291,30 @@ fi
 # ── 10. Generate traffic ────────────────────────────────────────────
 if [[ "$SKIP_TRAFFIC" == "false" ]]; then
     info "Generating traffic for ${TRAFFIC_DURATION}s to populate metrics …"
+    info "(Write-path ODFV metrics are served on :8001 — traffic generator runs in background)"
     python3 "${SCRIPT_DIR}/generate_traffic.py" \
         --url "http://localhost:${FEATURE_SERVER_PORT}" \
         --duration "$TRAFFIC_DURATION" \
-        > "${LOG_DIR}/traffic_gen.log" 2>&1
+        --repo-path "${WORK_DIR}/feast_demo/feature_repo" \
+        > "${LOG_DIR}/traffic_gen.log" 2>&1 &
+    TRAFFIC_PID=$!
+    echo "$TRAFFIC_PID" > "${WORK_DIR}/.traffic_gen.pid"
+
+    # Wait for traffic generation to finish
+    wait "$TRAFFIC_PID" 2>/dev/null || true
     success "Traffic generation completed"
+
+    # Restart traffic generator with long duration to keep SDK metrics server alive
+    info "Keeping SDK metrics server alive (background traffic at ~1 req/s) …"
+    python3 "${SCRIPT_DIR}/generate_traffic.py" \
+        --url "http://localhost:${FEATURE_SERVER_PORT}" \
+        --duration 86400 \
+        --rps 1 \
+        --repo-path "${WORK_DIR}/feast_demo/feature_repo" \
+        > "${LOG_DIR}/traffic_gen_bg.log" 2>&1 &
+    TRAFFIC_BG_PID=$!
+    echo "$TRAFFIC_BG_PID" > "${WORK_DIR}/.traffic_gen_bg.pid"
+    success "Background traffic running (PID ${TRAFFIC_BG_PID}, SDK metrics on :8001)"
 fi
 
 # ── 11. Summary ─────────────────────────────────────────────────────

@@ -44,11 +44,11 @@ feast-prometheus-metrics/
 
 1. **Prerequisite check** — verifies `python3`, `feast`, `docker` are available
 2. **Feature repository** — runs `feast init`, replaces feature definitions with a simplified version, enables all metric categories in `feature_store.yaml`
-3. **Apply & materialize** — runs `feast apply` and `feast materialize` to seed data
+3. **Apply & materialize** — runs `feast apply` and `feast materialize` (batch FVs) to seed data
 4. **Feature server** — starts `feast serve --metrics` in the background (port 6566, metrics on 8000)
 5. **Prometheus** — starts a Prometheus container scraping the Feast metrics endpoint
 6. **Grafana** — starts a Grafana container with a pre-provisioned Feast dashboard
-7. **Traffic generation** — sends varied requests (online features, push, materialize) to populate all metric types
+7. **Traffic generation** — sends varied requests including Pandas ODFV, Python ODFV, push, materialize, and SDK `write_to_online_store` for write-path ODFV transforms
 
 ## Setup Options
 
@@ -129,27 +129,59 @@ The Grafana dashboard visualises the following Feast metrics:
 ODFV transformation metrics are opt-in at the definition level via `track_metrics=True`:
 
 ```python
+# Pandas-mode read-path ODFV
 @on_demand_feature_view(
     sources=[driver_stats_fv, input_request],
     schema=[Field(name="output", dtype=Float64)],
-    track_metrics=True,   # enables transformation timing for this ODFV
+    track_metrics=True,
 )
-def my_transform(inputs: pd.DataFrame) -> pd.DataFrame:
+def my_pandas_transform(inputs: pd.DataFrame) -> pd.DataFrame:
     ...
+
+# Python-mode read-path ODFV
+@on_demand_feature_view(
+    sources=[driver_stats_fv, input_request],
+    schema=[Field(name="output_py", dtype=Float64)],
+    mode="python",
+    track_metrics=True,
+)
+def my_python_transform(inputs: Dict[str, Any]) -> Dict[str, Any]:
+    ...
+
+# Write-path ODFV (transformed during write_to_online_store)
+trip_score = OnDemandFeatureView(
+    name="trip_score",
+    entities=[driver],
+    sources=[driver_stats_fv],
+    schema=[Field(name="trip_score", dtype=Float64)],
+    feature_transformation=PythonTransformation(udf=udf_fn, udf_string="..."),
+    mode="python",
+    write_to_online_store=True,
+    track_metrics=True,
+)
 ```
 
 When `track_metrics=False` (the default), zero metrics code runs for that ODFV — no timing, no Prometheus recording.
+
+## Pandas vs Python ODFV Comparison
+
+This demo includes two read-path ODFVs performing the same computation, one using Pandas mode and the other Python mode. The Grafana dashboard includes a dedicated **"Pandas vs Python ODFV Read Latency"** panel that overlays p50/p95 latencies side by side, making it easy to compare the performance characteristics of each transformation mode.
 
 ## Manual Traffic Generation
 
 If you used `--skip-traffic`, you can generate traffic manually:
 
 ```bash
-# Generate 120 seconds of traffic at ~5 req/s
-python3 generate_traffic.py --url http://localhost:6566 --duration 120
+# Generate 120 seconds of traffic at ~5 req/s (including write-path transforms)
+python3 generate_traffic.py --url http://localhost:6566 --duration 120 \
+    --repo-path workspace/feast_demo/feature_repo
+
+# Without write-path transforms (REST-only traffic)
+python3 generate_traffic.py --url http://localhost:6566 --duration 60 --rps 10
 
 # Higher request rate
-python3 generate_traffic.py --url http://localhost:6566 --duration 60 --rps 10
+python3 generate_traffic.py --url http://localhost:6566 --duration 60 --rps 15 \
+    --repo-path workspace/feast_demo/feature_repo
 ```
 
 Or send individual requests:
@@ -160,10 +192,15 @@ curl -X POST http://localhost:6566/get-online-features \
   -H "Content-Type: application/json" \
   -d '{"features": ["driver_hourly_stats:conv_rate", "driver_hourly_stats:acc_rate"], "entities": {"driver_id": [1001, 1002]}}'
 
-# Online features with ODFV transform (requires request data)
+# Online features with Pandas ODFV transform
 curl -X POST http://localhost:6566/get-online-features \
   -H "Content-Type: application/json" \
   -d '{"features": ["driver_hourly_stats:conv_rate", "transformed_conv_rate:conv_rate_plus_val1", "transformed_conv_rate:conv_rate_plus_val2"], "entities": {"driver_id": [1001, 1002], "val_to_add": [5, 10], "val_to_add_2": [3, 7]}}'
+
+# Online features with Python ODFV transform
+curl -X POST http://localhost:6566/get-online-features \
+  -H "Content-Type: application/json" \
+  -d '{"features": ["driver_hourly_stats:conv_rate", "transformed_conv_rate_python:conv_rate_plus_val1_py", "transformed_conv_rate_python:conv_rate_plus_val2_py"], "entities": {"driver_id": [1001, 1002], "val_to_add": [5, 10], "val_to_add_2": [3, 7]}}'
 
 # Push
 curl -X POST http://localhost:6566/push \
@@ -193,8 +230,12 @@ rate(feast_feature_server_request_latency_seconds_sum[1m]) / rate(feast_feature_
 rate(feast_feature_server_online_store_read_duration_seconds_sum[1m]) / rate(feast_feature_server_online_store_read_duration_seconds_count[1m])
 rate(feast_feature_server_transformation_duration_seconds_sum[1m]) / rate(feast_feature_server_transformation_duration_seconds_count[1m])
 
-# Compare Python vs Pandas transform performance
-histogram_quantile(0.95, sum by (mode, le) (rate(feast_feature_server_transformation_duration_seconds_bucket[1m])))
+# Pandas vs Python p95 comparison
+histogram_quantile(0.95, sum(rate(feast_feature_server_transformation_duration_seconds_bucket{mode="pandas"}[1m])) by (le))
+histogram_quantile(0.95, sum(rate(feast_feature_server_transformation_duration_seconds_bucket{mode="python"}[1m])) by (le))
+
+# Write-path transform rate by ODFV
+rate(feast_feature_server_write_transformation_duration_seconds_count[1m])
 ```
 
 ## Metrics Configuration

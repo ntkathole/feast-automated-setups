@@ -48,6 +48,19 @@ info()    { echo -e "${BLUE}[INFO]${NC}  $*"; }
 success() { echo -e "${GREEN}[OK]${NC}    $*"; }
 warn()    { echo -e "${YELLOW}[WARN]${NC}  $*"; }
 
+# ── 0. Stop background traffic generator ─────────────────────────────
+info "Stopping background traffic generator …"
+for TPID_FILE in "${WORK_DIR}/.traffic_gen.pid" "${WORK_DIR}/.traffic_gen_bg.pid"; do
+    if [[ -f "$TPID_FILE" ]]; then
+        TPID=$(cat "$TPID_FILE")
+        if kill -0 "$TPID" 2>/dev/null; then
+            kill "$TPID" 2>/dev/null || true
+            success "Stopped traffic generator (PID ${TPID})"
+        fi
+        rm -f "$TPID_FILE"
+    fi
+done
+
 # ── 1. Stop Feast feature server ────────────────────────────────────
 info "Stopping Feast feature server …"
 if [[ -f "$PID_FILE" ]]; then

@@ -6,3 +6,6 @@ scrape_configs:
   - job_name: feast
     static_configs:
       - targets: ["host.docker.internal:8000"]
+  - job_name: feast-sdk-client
+    static_configs:
+      - targets: ["host.docker.internal:8001"]
