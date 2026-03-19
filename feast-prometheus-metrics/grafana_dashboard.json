@@ -360,7 +360,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "feast_materialization_total",
+          "expr": "feast_materialization_result_total",
           "legendFormat": "{{feature_view}} [{{status}}]",
           "refId": "A"
         }

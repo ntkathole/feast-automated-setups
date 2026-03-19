@@ -118,7 +118,7 @@ The Grafana dashboard visualises the following Feast metrics:
 - `feast_push_request_total` — Push request count by source and mode
 
 ### Materialization Metrics
-- `feast_materialization_total` — Materialization runs by feature view and status
+- `feast_materialization_result_total` — Materialization runs by feature view and status
 - `feast_materialization_duration_seconds` — Materialization duration histogram
 
 ### Freshness Metrics
