@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  labels:
+    app: postgres
+spec:
+  type: ClusterIP
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+  selector:
+    app: postgres
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  labels:
+    app: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - secretRef:
+                name: postgres-secret
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+          volumeMounts:
+            - mountPath: /var/lib/postgresql
+              name: data
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "feast"]
+            initialDelaySeconds: 5
+            periodSeconds: 3
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "feast"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+      volumes:
+        - name: data
+          emptyDir: {}

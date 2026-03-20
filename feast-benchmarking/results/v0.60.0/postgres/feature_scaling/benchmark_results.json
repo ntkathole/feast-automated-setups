@@ -1,0 +1,177 @@
+{
+  "store": "postgres",
+  "scenario": "feature_scaling",
+  "timestamp": "2026-03-19T18:18:08.613036",
+  "feast_version": "0.0.0",
+  "config": {
+    "fixed_entities": 50,
+    "feature_counts": [
+      5,
+      25,
+      50,
+      100,
+      150,
+      200
+    ],
+    "iterations": 300,
+    "warmup": 20,
+    "sla_ms": 60.0,
+    "optimizations": [
+      "cache_ttl=0",
+      "entity_key_v3",
+      "iter=300"
+    ]
+  },
+  "latency": [
+    {
+      "store": "postgres",
+      "scenario": "feature_scaling",
+      "num_features": 5,
+      "num_entities": 50,
+      "p50": 4.465212987270206,
+      "p95": 4.949369002133608,
+      "p99": 6.394030002411455,
+      "mean": 4.537480179375659,
+      "min_val": 4.316650039982051,
+      "max_val": 6.465089973062277,
+      "std_dev": 0.3057219514547676,
+      "rps": 220.3866376200009,
+      "online_read_pct": 0.19849348306738757,
+      "protobuf_convert_pct": 6.946711267903417,
+      "entity_serial_pct": 4.402327310797699,
+      "other_pct": 88.45246793823149,
+      "sla_pass": true,
+      "feast_version": "0.0.0",
+      "optimizations": [
+        "cache_ttl=0",
+        "entity_key_v3",
+        "iter=300"
+      ]
+    },
+    {
+      "store": "postgres",
+      "scenario": "feature_scaling",
+      "num_features": 25,
+      "num_entities": 50,
+      "p50": 14.603998977690935,
+      "p95": 23.16207403782755,
+      "p99": 61.09054700937122,
+      "mean": 17.074101834829587,
+      "min_val": 13.765336014330387,
+      "max_val": 66.76613504532725,
+      "std_dev": 6.958355292675978,
+      "rps": 58.5682344918485,
+      "online_read_pct": 0.11355991436130777,
+      "protobuf_convert_pct": 11.160631835197536,
+      "entity_serial_pct": 1.350685507997926,
+      "other_pct": 87.37512274244322,
+      "sla_pass": false,
+      "feast_version": "0.0.0",
+      "optimizations": [
+        "cache_ttl=0",
+        "entity_key_v3",
+        "iter=300"
+      ]
+    },
+    {
+      "store": "postgres",
+      "scenario": "feature_scaling",
+      "num_features": 50,
+      "num_entities": 50,
+      "p50": 26.925262005534023,
+      "p95": 39.35332101536915,
+      "p99": 82.18501199735329,
+      "mean": 30.289926147282433,
+      "min_val": 25.36927501205355,
+      "max_val": 88.03837199229747,
+      "std_dev": 9.43625925851463,
+      "rps": 33.014276599341216,
+      "online_read_pct": 0.11862852917681661,
+      "protobuf_convert_pct": 11.837597001743333,
+      "entity_serial_pct": 0.7257716807792306,
+      "other_pct": 87.31800278830062,
+      "sla_pass": false,
+      "feast_version": "0.0.0",
+      "optimizations": [
+        "cache_ttl=0",
+        "entity_key_v3",
+        "iter=300"
+      ]
+    },
+    {
+      "store": "postgres",
+      "scenario": "feature_scaling",
+      "num_features": 100,
+      "num_entities": 50,
+      "p50": 50.68982898956165,
+      "p95": 102.91035298723727,
+      "p99": 114.03428600169718,
+      "mean": 58.169324203627184,
+      "min_val": 47.93808702379465,
+      "max_val": 138.44995200634003,
+      "std_dev": 17.992483396249735,
+      "rps": 17.191191640793456,
+      "online_read_pct": 0.13241360542528258,
+      "protobuf_convert_pct": 12.789427193569768,
+      "entity_serial_pct": 0.35965600274238807,
+      "other_pct": 86.71850319826257,
+      "sla_pass": false,
+      "feast_version": "0.0.0",
+      "optimizations": [
+        "cache_ttl=0",
+        "entity_key_v3",
+        "iter=300"
+      ]
+    },
+    {
+      "store": "postgres",
+      "scenario": "feature_scaling",
+      "num_features": 150,
+      "num_entities": 50,
+      "p50": 68.37960198754445,
+      "p95": 121.27494596643373,
+      "p99": 134.32868698146194,
+      "mean": 80.26633820302474,
+      "min_val": 62.72847601212561,
+      "max_val": 140.66911698319018,
+      "std_dev": 21.849946828746557,
+      "rps": 12.458522743003568,
+      "online_read_pct": 0.14828862500561305,
+      "protobuf_convert_pct": 15.04683039591948,
+      "entity_serial_pct": 0.2836518066778929,
+      "other_pct": 84.52122917239701,
+      "sla_pass": false,
+      "feast_version": "0.0.0",
+      "optimizations": [
+        "cache_ttl=0",
+        "entity_key_v3",
+        "iter=300"
+      ]
+    },
+    {
+      "store": "postgres",
+      "scenario": "feature_scaling",
+      "num_features": 200,
+      "num_entities": 50,
+      "p50": 91.74238302512094,
+      "p95": 144.73912899848074,
+      "p99": 152.3696419899352,
+      "mean": 106.7183008842403,
+      "min_val": 84.30945099098608,
+      "max_val": 165.0325310183689,
+      "std_dev": 23.343014998572105,
+      "rps": 9.370464032075642,
+      "online_read_pct": 0.15149531478682537,
+      "protobuf_convert_pct": 14.431334394767939,
+      "entity_serial_pct": 0.18420938026853478,
+      "other_pct": 85.2329609101767,
+      "sla_pass": false,
+      "feast_version": "0.0.0",
+      "optimizations": [
+        "cache_ttl=0",
+        "entity_key_v3",
+        "iter=300"
+      ]
+    }
+  ]
+}

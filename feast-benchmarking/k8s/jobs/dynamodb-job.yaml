@@ -1,0 +1,70 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: feast-benchmark-dynamodb
+  labels:
+    app: feast-benchmark
+    store: dynamodb
+spec:
+  ttlSecondsAfterFinished: 3600
+  backoffLimit: 0
+  activeDeadlineSeconds: 3600
+  template:
+    metadata:
+      labels:
+        app: feast-benchmark
+        store: dynamodb
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: benchmark
+          image: image-registry.openshift-image-registry.svc:5000/feast-benchmark/feast-benchmark:latest
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: benchmark-config
+          env:
+            - name: STORE
+              value: "dynamodb"
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: AWS_ACCESS_KEY_ID
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: AWS_SECRET_ACCESS_KEY
+            - name: AWS_DEFAULT_REGION
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: AWS_DEFAULT_REGION
+                  optional: true
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "2000m"
+          volumeMounts:
+            - name: results
+              mountPath: /results
+            - name: benchmark-script
+              mountPath: /scripts
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              export PYTHONUNBUFFERED=1
+              python3 -u /scripts/benchmark_runner.py
+      volumes:
+        - name: results
+          persistentVolumeClaim:
+            claimName: benchmark-results
+        - name: benchmark-script
+          configMap:
+            name: benchmark-script

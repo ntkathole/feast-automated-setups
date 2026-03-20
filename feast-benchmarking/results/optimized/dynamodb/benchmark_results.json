@@ -1,0 +1,157 @@
+{
+  "store": "dynamodb",
+  "scenario": "entity_scaling",
+  "timestamp": "2026-03-19T18:47:35.559498",
+  "feast_version": "0.0.0",
+  "config": {
+    "fixed_features": 200,
+    "entity_counts": [
+      1,
+      10,
+      50,
+      100,
+      200
+    ],
+    "iterations": 300,
+    "warmup": 20,
+    "sla_ms": 60.0,
+    "optimizations": [
+      "cache_ttl=0",
+      "entity_key_v3",
+      "iter=300",
+      "adaptive_retry"
+    ]
+  },
+  "latency": [
+    {
+      "store": "dynamodb",
+      "scenario": "entity_scaling",
+      "num_features": 200,
+      "num_entities": 1,
+      "p50": 19.898285972885787,
+      "p95": 22.230054019019008,
+      "p99": 25.447249005082995,
+      "mean": 20.094586972457666,
+      "min_val": 17.96096604084596,
+      "max_val": 27.297477005049586,
+      "std_dev": 1.2710226140296037,
+      "rps": 49.76464564166631,
+      "online_read_pct": 0.05786674861170519,
+      "protobuf_convert_pct": 2.0295325410349054,
+      "entity_serial_pct": 0.04375018491304197,
+      "other_pct": 97.86885052544035,
+      "sla_pass": true,
+      "feast_version": "0.0.0",
+      "optimizations": [
+        "cache_ttl=0",
+        "entity_key_v3",
+        "iter=300",
+        "adaptive_retry"
+      ]
+    },
+    {
+      "store": "dynamodb",
+      "scenario": "entity_scaling",
+      "num_features": 200,
+      "num_entities": 10,
+      "p50": 37.20507299294695,
+      "p95": 47.51919402042404,
+      "p99": 124.04487800085917,
+      "mean": 40.46364254977865,
+      "min_val": 33.90133602079004,
+      "max_val": 141.3607329595834,
+      "std_dev": 15.055983462066742,
+      "rps": 24.713543739167655,
+      "online_read_pct": 0.03569270007353703,
+      "protobuf_convert_pct": 5.4862466524653435,
+      "entity_serial_pct": 0.09107074262918416,
+      "other_pct": 94.38698990483194,
+      "sla_pass": false,
+      "feast_version": "0.0.0",
+      "optimizations": [
+        "cache_ttl=0",
+        "entity_key_v3",
+        "iter=300",
+        "adaptive_retry"
+      ]
+    },
+    {
+      "store": "dynamodb",
+      "scenario": "entity_scaling",
+      "num_features": 200,
+      "num_entities": 50,
+      "p50": 130.0210559857078,
+      "p95": 217.05422404920682,
+      "p99": 227.56533802021295,
+      "mean": 156.64315425402796,
+      "min_val": 113.1647570291534,
+      "max_val": 242.69662098959088,
+      "std_dev": 40.42715670009804,
+      "rps": 6.38393681972403,
+      "online_read_pct": 0.013300051128952484,
+      "protobuf_convert_pct": 8.70071067763033,
+      "entity_serial_pct": 0.11533076608232347,
+      "other_pct": 91.17065850515839,
+      "sla_pass": false,
+      "feast_version": "0.0.0",
+      "optimizations": [
+        "cache_ttl=0",
+        "entity_key_v3",
+        "iter=300",
+        "adaptive_retry"
+      ]
+    },
+    {
+      "store": "dynamodb",
+      "scenario": "entity_scaling",
+      "num_features": 200,
+      "num_entities": 100,
+      "p50": 309.46523300372064,
+      "p95": 340.01007402548566,
+      "p99": 361.49946897057816,
+      "mean": 301.79921856285847,
+      "min_val": 219.0312459715642,
+      "max_val": 369.5240089436993,
+      "std_dev": 33.74530808480843,
+      "rps": 3.3134611970233476,
+      "online_read_pct": 0.007022531974166474,
+      "protobuf_convert_pct": 8.504743452376454,
+      "entity_serial_pct": 0.10866678896219718,
+      "other_pct": 91.37956722668719,
+      "sla_pass": false,
+      "feast_version": "0.0.0",
+      "optimizations": [
+        "cache_ttl=0",
+        "entity_key_v3",
+        "iter=300",
+        "adaptive_retry"
+      ]
+    },
+    {
+      "store": "dynamodb",
+      "scenario": "entity_scaling",
+      "num_features": 200,
+      "num_entities": 200,
+      "p50": 613.4856150019914,
+      "p95": 676.0745330248028,
+      "p99": 704.6494189999066,
+      "mean": 600.0240928479858,
+      "min_val": 508.142349019181,
+      "max_val": 724.8093789676204,
+      "std_dev": 51.21283419770372,
+      "rps": 1.6665997447761598,
+      "online_read_pct": 0.1143890181179065,
+      "protobuf_convert_pct": 9.14396703637433,
+      "entity_serial_pct": 0.10492303079767795,
+      "other_pct": 90.63672091471008,
+      "sla_pass": false,
+      "feast_version": "0.0.0",
+      "optimizations": [
+        "cache_ttl=0",
+        "entity_key_v3",
+        "iter=300",
+        "adaptive_retry"
+      ]
+    }
+  ]
+}

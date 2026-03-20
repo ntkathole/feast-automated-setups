@@ -1,0 +1,24 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: feast-benchmark-base
+  namespace: feast-benchmark
+spec:
+  runPolicy: Serial
+  source:
+    type: Binary
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Dockerfile.base
+  output:
+    to:
+      kind: ImageStreamTag
+      name: feast-benchmark-base:latest
+  resources:
+    limits:
+      memory: 4Gi
+      cpu: "2"
+    requests:
+      memory: 2Gi
+      cpu: "1"

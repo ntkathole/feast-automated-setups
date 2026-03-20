@@ -1,0 +1,64 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: feast-benchmark-postgres
+  labels:
+    app: feast-benchmark
+    store: postgres
+spec:
+  ttlSecondsAfterFinished: 3600
+  backoffLimit: 0
+  activeDeadlineSeconds: 3600
+  template:
+    metadata:
+      labels:
+        app: feast-benchmark
+        store: postgres
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: benchmark
+          image: image-registry.openshift-image-registry.svc:5000/feast-benchmark/feast-benchmark:latest
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: benchmark-config
+          env:
+            - name: STORE
+              value: "postgres"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "2000m"
+          volumeMounts:
+            - name: results
+              mountPath: /results
+            - name: benchmark-script
+              mountPath: /scripts
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              export PYTHONUNBUFFERED=1
+              python3 -u /scripts/benchmark_runner.py
+      volumes:
+        - name: results
+          persistentVolumeClaim:
+            claimName: benchmark-results
+        - name: benchmark-script
+          configMap:
+            name: benchmark-script

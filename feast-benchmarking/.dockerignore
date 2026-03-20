@@ -1,0 +1,27 @@
+# Virtual environment (not needed in container)
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Results (created at runtime)
+results/
+
+# Git
+.git/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# K8s manifests (not needed in image)
+k8s/
+
+# Docs
+*.md
+docs/
+
+# Backup files
+*.backup
+*.backup.*
