@@ -45,12 +45,14 @@ cd fs-online-benchmark/locust-bechmarking/feast-benchmarking
 
 ### Performance at SLA Target (50 entities × 200 features)
 
-| Store | v0.59.0 | v0.60.0 | v0.61.0 | Best For |
-|-------|---------|---------|---------|----------|
-| **Redis** | 79.3ms | 80.4ms | 74.4ms | Production ML inference |
-| **SQLite** | 81.4ms | 88.2ms | 95.7ms | Development, testing |
-| **PostgreSQL** | 98.5ms | 93.6ms | 93.4ms | Existing infrastructure |
-| **DynamoDB** | 115.4ms | 129.5ms | 72.8ms | AWS serverless |
+| Store | v0.59.0 p50/p99 | v0.60.0 p50/p99 | v0.61.0 p50/p99 | Best For |
+|-------|-----------------|-----------------|-----------------|----------|
+| **Redis** | 79/153ms | 80/158ms | 74/134ms | Production ML inference |
+| **SQLite** | 81/132ms | 88/157ms | 96/170ms | Development, testing |
+| **PostgreSQL** | 99/181ms | 94/161ms | 93/157ms | Existing infrastructure |
+| **DynamoDB** | 115/187ms | 130/231ms | 73/136ms | AWS serverless |
+
+*Chart above shows p99 latency. SLA target: 60ms p99.*
 
 ### Key Findings
 
@@ -64,17 +66,17 @@ cd fs-online-benchmark/locust-bechmarking/feast-benchmarking
 
 ## Detailed Benchmark Results
 
-### Latency Comparison (50 entities × 200 features)
+### Latency Comparison (50 entities × 200 features, p50/p99)
 
 | Version | Redis | SQLite | Postgres | DynamoDB | Best Store |
 |---------|-------|--------|----------|----------|------------|
-| v0.59.0 | 79.3ms | 81.4ms | 98.5ms | 115.4ms | Redis |
-| v0.60.0 | 80.4ms | 88.2ms | 93.6ms | 129.5ms | Redis |
-| v0.61.0 | 74.4ms | 95.7ms | 93.4ms | **72.8ms** | DynamoDB |
-| master | 79.2ms | 84.6ms | 82.2ms | 129.5ms | Redis |
-| optimized | 75.8ms | 96.4ms | 96.9ms | 130.0ms | Redis |
+| v0.59.0 | 79/153ms | 81/132ms | 99/181ms | 115/187ms | SQLite |
+| v0.60.0 | 80/158ms | 88/157ms | 94/161ms | 130/231ms | SQLite |
+| v0.61.0 | 74/134ms | 96/170ms | 93/157ms | **73/136ms** | Redis |
+| master | 79/148ms | 85/141ms | 82/146ms | 130/231ms | SQLite |
+| optimized | 76/136ms | 96/179ms | 97/161ms | 130/228ms | Redis |
 
-*SLA Pass Rate: 1/5 across all versions (only 1-entity requests meet 60ms SLA)*
+*SLA target: 60ms p99. Only 1-entity requests meet SLA across all stores.*
 
 ### Charts by Version
 
