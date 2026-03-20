@@ -1,0 +1,7 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Top-level kustomization includes stores (which includes base)
+# Jobs are excluded as they should be launched via scripts/launch_all_benchmarks.sh
+resources:
+  - stores

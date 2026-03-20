@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: feast-benchmark
+  labels:
+    app.kubernetes.io/name: feast-benchmark
+    app.kubernetes.io/part-of: feast

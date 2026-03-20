@@ -1,0 +1,151 @@
+{
+  "store": "redis",
+  "scenario": "entity_scaling",
+  "timestamp": "2026-03-19T18:25:11.264300",
+  "feast_version": "0.0.0",
+  "config": {
+    "fixed_features": 200,
+    "entity_counts": [
+      1,
+      10,
+      50,
+      100,
+      200
+    ],
+    "iterations": 300,
+    "warmup": 20,
+    "sla_ms": 60.0,
+    "optimizations": [
+      "cache_ttl=0",
+      "entity_key_v3",
+      "iter=300"
+    ]
+  },
+  "latency": [
+    {
+      "store": "redis",
+      "scenario": "entity_scaling",
+      "num_features": 200,
+      "num_entities": 1,
+      "p50": 14.099652005825192,
+      "p95": 14.638649998232722,
+      "p99": 15.293239965103567,
+      "mean": 14.280467110220343,
+      "min_val": 13.75062798615545,
+      "max_val": 58.300890028476715,
+      "std_dev": 2.5641893507614837,
+      "rps": 70.02572060715809,
+      "online_read_pct": 0.03414860258165345,
+      "protobuf_convert_pct": 2.6037066452039777,
+      "entity_serial_pct": 0.03129427980937066,
+      "other_pct": 97.330850472405,
+      "sla_pass": true,
+      "feast_version": "0.0.0",
+      "optimizations": [
+        "cache_ttl=0",
+        "entity_key_v3",
+        "iter=300"
+      ]
+    },
+    {
+      "store": "redis",
+      "scenario": "entity_scaling",
+      "num_features": 200,
+      "num_entities": 10,
+      "p50": 24.065730976872146,
+      "p95": 27.131194015964866,
+      "p99": 68.79349402152002,
+      "mean": 25.720417162131827,
+      "min_val": 23.230240971315652,
+      "max_val": 71.95562100969255,
+      "std_dev": 7.558812497775221,
+      "rps": 38.8796182307766,
+      "online_read_pct": 0.03946808259956388,
+      "protobuf_convert_pct": 8.357709898965577,
+      "entity_serial_pct": 0.12704344592172123,
+      "other_pct": 91.47577857251314,
+      "sla_pass": false,
+      "feast_version": "0.0.0",
+      "optimizations": [
+        "cache_ttl=0",
+        "entity_key_v3",
+        "iter=300"
+      ]
+    },
+    {
+      "store": "redis",
+      "scenario": "entity_scaling",
+      "num_features": 200,
+      "num_entities": 50,
+      "p50": 74.38505499158055,
+      "p95": 124.69037697883323,
+      "p99": 134.04060702305287,
+      "mean": 84.7791682513586,
+      "min_val": 68.94912803545594,
+      "max_val": 135.19536604871973,
+      "std_dev": 19.994297304192603,
+      "rps": 11.795350445467184,
+      "online_read_pct": 0.04548114923279746,
+      "protobuf_convert_pct": 16.68826921368486,
+      "entity_serial_pct": 0.24325426838575318,
+      "other_pct": 83.02299536869658,
+      "sla_pass": false,
+      "feast_version": "0.0.0",
+      "optimizations": [
+        "cache_ttl=0",
+        "entity_key_v3",
+        "iter=300"
+      ]
+    },
+    {
+      "store": "redis",
+      "scenario": "entity_scaling",
+      "num_features": 200,
+      "num_entities": 100,
+      "p50": 145.07369801867753,
+      "p95": 195.9081279928796,
+      "p99": 205.38149098865688,
+      "mean": 160.9447834052844,
+      "min_val": 132.4259639950469,
+      "max_val": 214.01768701616675,
+      "std_dev": 24.694612900138274,
+      "rps": 6.213311042718558,
+      "online_read_pct": 0.047829067020407824,
+      "protobuf_convert_pct": 19.441747262294964,
+      "entity_serial_pct": 0.25605527145700474,
+      "other_pct": 80.25436839922763,
+      "sla_pass": false,
+      "feast_version": "0.0.0",
+      "optimizations": [
+        "cache_ttl=0",
+        "entity_key_v3",
+        "iter=300"
+      ]
+    },
+    {
+      "store": "redis",
+      "scenario": "entity_scaling",
+      "num_features": 200,
+      "num_entities": 200,
+      "p50": 317.9284039651975,
+      "p95": 364.24700502539054,
+      "p99": 402.99112297361717,
+      "mean": 318.1106535254124,
+      "min_val": 264.06087598297745,
+      "max_val": 404.55759200267494,
+      "std_dev": 23.87872297000795,
+      "rps": 3.143560232634946,
+      "online_read_pct": 0.04376102426816919,
+      "protobuf_convert_pct": 19.864034830640264,
+      "entity_serial_pct": 0.2509617736048832,
+      "other_pct": 79.84124237148669,
+      "sla_pass": false,
+      "feast_version": "0.0.0",
+      "optimizations": [
+        "cache_ttl=0",
+        "entity_key_v3",
+        "iter=300"
+      ]
+    }
+  ]
+}

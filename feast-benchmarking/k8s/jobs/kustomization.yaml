@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: feast-benchmark
+
+resources:
+  - ../stores
+  - sqlite-job.yaml
+  - redis-job.yaml
+  - postgres-job.yaml
+  - dynamodb-job.yaml
+
+# Note: Jobs are typically not applied via kustomize directly.
+# Use scripts/launch_all_benchmarks.sh which modifies job templates
+# with specific FEAST_REF and image tags before applying.
+#
+# This kustomization is provided for:
+# 1. Validating job manifests: kustomize build k8s/jobs
+# 2. Running a quick test with default settings: kustomize build k8s/jobs | oc apply -f -

@@ -1,0 +1,18 @@
+# Feast Benchmark Dependencies
+
+# Core Feast (custom branch with performance optimizations)
+feast[redis,aws] @ git+https://github.com/abhijeet-dhumal/feast.git@perf/combined-optimizations
+
+# Data processing
+pandas>=2.0.0
+numpy>=1.24.0
+pyarrow>=12.0.0
+
+# Visualization
+matplotlib>=3.7.0
+
+# HTTP requests (for NYC taxi data download)
+requests>=2.28.0
+
+# Load testing (optional)
+locust>=2.15.0

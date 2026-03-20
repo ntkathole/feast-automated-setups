@@ -1,0 +1,237 @@
+#===============================================================================
+# Feast Benchmark Configuration
+#===============================================================================
+# This file contains all configurable parameters for running benchmarks.
+# Edit this file instead of modifying the run_full_benchmark.sh script.
+#
+# USAGE:
+#   Single ref:    ./run_full_benchmark.sh
+#   Multi-ref:     ./run_full_benchmark.sh --compare
+#   Specific refs: ./run_full_benchmark.sh --refs "baseline,optimized"
+#===============================================================================
+
+#-------------------------------------------------------------------------------
+# Feast References (for comparison benchmarks)
+#-------------------------------------------------------------------------------
+# Define multiple feast versions to compare. Use --compare flag to run all.
+# Results stored in: results/{ref_name}/{store}/
+#
+references:
+  v0.59.0:
+    description: "Official Feast v0.59.0 release"
+    source: git
+    git_url: "https://github.com/feast-dev/feast.git"
+    git_ref: "v0.59.0"
+    
+  v0.60.0:
+    description: "Official Feast v0.60.0 release (Feb 2026)"
+    source: git
+    git_url: "https://github.com/feast-dev/feast.git"
+    git_ref: "v0.60.0"
+    
+  v0.61.0:
+    description: "Official Feast v0.61.0 release (Mar 2026)"
+    source: git
+    git_url: "https://github.com/feast-dev/feast.git"
+    git_ref: "v0.61.0"
+    
+  master:
+    description: "Feast master branch (latest)"
+    source: git
+    git_url: "https://github.com/feast-dev/feast.git"
+    git_ref: "master"
+    
+  optimized:
+    description: "Performance branch with combined optimizations (PRs #6003, #6006, #6014, #6015, #6023, #6024)"
+    source: git
+    git_url: "https://github.com/abhijeet-dhumal/feast.git"
+    git_ref: "perf/combined-optimizations"
+    
+  v0.61.0-dax:
+    description: "Feast with DAX client support (requires DAX cluster)"
+    source: git
+    git_url: "https://github.com/abhijeet-dhumal/feast.git"
+    git_ref: "add-dax-client-support"
+    extras: "redis,aws,postgres,dax"  # Include dax extra for DAX client
+    use_dax: true  # Enable DAX for this reference
+
+#-------------------------------------------------------------------------------
+# Default Reference (used when not in --compare mode)
+#-------------------------------------------------------------------------------
+default_ref: "v0.61.0"
+
+#-------------------------------------------------------------------------------
+# Feast Extras (shared across all refs)
+#-------------------------------------------------------------------------------
+feast_extras: "redis,aws,postgres"
+
+#-------------------------------------------------------------------------------
+# Benchmark Parameters
+#-------------------------------------------------------------------------------
+benchmark:
+  # Default scenario (entity scaling)
+  features: 200
+  entities: [1, 10, 50, 100, 200]
+  iterations: 300
+  warmup: 20
+  sla_ms: 60
+
+#-------------------------------------------------------------------------------
+# Benchmark Scenarios
+#-------------------------------------------------------------------------------
+# Two scenarios for comprehensive performance analysis:
+#   1. entity_scaling: Fixed features (200), vary entities (1-200)
+#   2. feature_scaling: Fixed entities (50), vary features (5-200)
+#
+# SLA Target: 50 entities × 200 features @ 60ms p99
+#
+# USAGE:
+#   Both scenarios (default): ./run_full_benchmark.sh
+#   Entity scaling only:      ./run_full_benchmark.sh --scenario entity_scaling
+#   Feature scaling only:     ./run_full_benchmark.sh --scenario feature_scaling
+#
+scenarios:
+  entity_scaling:
+    description: "Fixed 200 features, varying entity counts (SLA target: 50 entities)"
+    features: 200
+    entities: [1, 10, 50, 100, 200]
+    sla_entity_count: 50
+    output_suffix: "entity_scaling"
+    
+  feature_scaling:
+    description: "Fixed 50 entities, varying feature counts (SLA target: 200 features)"
+    entities: 50
+    features: [5, 25, 50, 100, 150, 200]
+    sla_feature_count: 200
+    output_suffix: "feature_scaling"
+
+# Default: run BOTH scenarios for complete SLA assessment
+default_scenario: "all"
+
+#-------------------------------------------------------------------------------
+# Store-Specific Configuration
+#-------------------------------------------------------------------------------
+# Each store has:
+#   - enabled: whether to run benchmark for this store
+#   - iterations/warmup: benchmark-specific settings
+#   - online_store: Feast feature_store.yaml online_store config
+#
+stores:
+  sqlite:
+    enabled: true
+    iterations: 200
+    warmup: 10
+    online_store:
+      type: sqlite
+      path: /tmp/feast_benchmark/online_store.db
+    
+  redis:
+    enabled: true
+    iterations: 300
+    warmup: 20
+    online_store:
+      type: redis
+      connection_string: "redis://redis.feast-benchmark.svc.cluster.local:6379"
+      # Redis tuning
+      key_ttl_seconds: 0           # 0 = no expiry
+      # password: ""               # Uncomment if auth enabled
+      # ssl: false
+      # ssl_cert_reqs: "required"  # For SSL: required, optional, none
+      
+  postgres:
+    enabled: true
+    iterations: 300
+    warmup: 25
+    online_store:
+      type: postgres
+      host: "postgres.feast-benchmark.svc.cluster.local"
+      port: 5432
+      database: "feast"
+      user: "feast"
+      password: "feast"
+      db_schema: "public"
+      # sslmode: "prefer"          # disable, allow, prefer, require, verify-ca, verify-full
+      # sslrootcert: ""            # Path to CA cert
+      # pool_size: 5               # Connection pool size
+      # max_overflow: 10           # Max connections beyond pool_size
+      
+  dynamodb:
+    enabled: true
+    iterations: 500
+    warmup: 30
+    online_store:
+      type: dynamodb
+      region: "eu-west-1"
+      table_name: "feast_benchmark"
+      # Performance tuning
+      batch_size: 100              # Items per batch read
+      consistent_reads: false      # Eventually consistent (faster) vs strongly consistent
+      # Connection tuning
+      max_pool_connections: 200    # Max HTTP connections in pool
+      keepalive_timeout: 60.0      # Seconds to keep connections alive
+      connect_timeout: 2           # Connection timeout (seconds)
+      read_timeout: 5              # Read timeout (seconds)
+      # Retry configuration
+      retry_mode: "adaptive"       # legacy, standard, adaptive
+      total_max_retry_attempts: 3
+      # endpoint_url: ""           # For local DynamoDB or custom endpoint
+      # Use aws-credentials secret for AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY
+    # DAX Configuration (for v0.61.0-dax reference)
+    dax:
+      enabled: true
+      endpoint: "dax://feast-dax.s4fnhz.dax-clusters.eu-west-1.amazonaws.com:8111"
+      # Note: DAX requires amazon-dax-client package and Feast DAX support: https://github.com/feast-dev/feast/pull/6133
+
+#-------------------------------------------------------------------------------
+# Feast Registry Settings
+#-------------------------------------------------------------------------------
+registry:
+  registry_type: "file"
+  path: "/tmp/feast_benchmark/registry.pb"
+  cache_ttl_seconds: 0             # 0 = infinite cache (no refresh during benchmark)
+
+#-------------------------------------------------------------------------------
+# Entity Key Serialization
+#-------------------------------------------------------------------------------
+entity_key_serialization_version: 3  # Use v3 for better performance
+
+#-------------------------------------------------------------------------------
+# Kubernetes Settings
+#-------------------------------------------------------------------------------
+kubernetes:
+  namespace: "feast-benchmark"
+  image:
+    registry: "image-registry.openshift-image-registry.svc:5000"
+    repository: "feast-benchmark/feast-benchmark"
+    tag: "latest"
+  job_timeout: 3600  # 60 minutes for PostgreSQL
+  results_pvc: "benchmark-results"
+
+#-------------------------------------------------------------------------------
+# Output Settings
+#-------------------------------------------------------------------------------
+# Directory structure:
+#   results/
+#   ├── {ref_name}/                       # Per-reference results (master, v0.60.0, optimized)
+#   │   ├── sqlite_entity_scaling/        # Store + scenario
+#   │   │   └── benchmark_results.json
+#   │   ├── sqlite_feature_scaling/
+#   │   ├── redis_entity_scaling/
+#   │   ├── redis_feature_scaling/
+#   │   ├── postgres_entity_scaling/
+#   │   ├── dynamodb_entity_scaling/
+#   │   └── charts/                       # Charts for this ref only
+#   └── comparison/                       # Cross-reference comparison (--compare mode)
+#       └── charts/
+#
+output:
+  results_dir: "results"
+  generate_charts: true
+  generate_comparison: true      # Generate comparison charts in --compare mode
+
+#-------------------------------------------------------------------------------
+# Parallel Execution (--compare mode)
+#-------------------------------------------------------------------------------
+parallel:
+  max_concurrent_builds: 2       # Max parallel image builds
+  max_concurrent_jobs: 4         # Max parallel K8s jobs
