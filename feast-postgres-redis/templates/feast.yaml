@@ -22,15 +22,13 @@ metadata:
     feature-store-ui: enabled
 spec:
   feastProject: credit_scoring_local
-  feastProjectDir:
-    git:
-      url: https://github.com/accorvin/feast-credit-score-local-tutorial.git
-      ref: demo
   services:
     offlineStore:
-      persistence:
-        file:
-          type: duckdb
+      server:
+        resources:
+          requests:
+            cpu: 150m
+            memory: 128Mi
     onlineStore:
       persistence:
         store:
