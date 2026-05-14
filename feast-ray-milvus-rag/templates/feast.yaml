@@ -37,6 +37,12 @@ spec:
   batchEngine:
     configMapRef:
       name: feast-ray-batch-engine
+  cronJob:
+    containerConfigs:
+      image: __FEATURE_SERVER_IMAGE__
+      env:
+      - name: HF_HOME
+        value: /tmp/hf_cache
   services:
     offlineStore:
       persistence:
