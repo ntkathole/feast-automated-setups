@@ -15,19 +15,18 @@ Demonstrates:
 import sys
 from pathlib import Path
 
-sys.path.append(str(Path(__file__).parent))
-
-try:
-    from sentence_transformers import SentenceTransformer
-
-    from feast import FeatureStore
-except ImportError as e:
-    print(f"Missing dependency: {e}")
-    print("Install with: pip install feast[ray] sentence-transformers pymilvus")
-    sys.exit(1)
-
 
 def main():
+    sys.path.append(str(Path(__file__).parent))
+
+    try:
+        from sentence_transformers import SentenceTransformer
+
+        from feast import FeatureStore
+    except ImportError as e:
+        print(f"Missing dependency: {e}")
+        print("Install with: pip install feast[ray] sentence-transformers pymilvus")
+        sys.exit(1)
     store = FeatureStore(repo_path=".")
 
     feature_views = store.list_feature_views()
