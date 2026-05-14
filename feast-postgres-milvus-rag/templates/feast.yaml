@@ -1,0 +1,94 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: feast-data-stores
+  namespace: __NAMESPACE__
+stringData:
+  sql: |
+    path: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres.__NAMESPACE__.svc.cluster.local:5432/${POSTGRES_DB}
+    cache_ttl_seconds: 10
+    sqlalchemy_config_kwargs:
+        echo: false
+        pool_pre_ping: true
+  postgres: |
+    host: postgres.__NAMESPACE__.svc.cluster.local
+    port: 5432
+    database: ${POSTGRES_DB}
+    db_schema: public
+    user: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+  milvus: |
+    host: http://milvus.__NAMESPACE__.svc.cluster.local
+    port: 19530
+    vector_enabled: true
+    embedding_dim: 384
+    index_type: IVF_FLAT
+    metric_type: COSINE
+---
+apiVersion: feast.dev/v1alpha1
+kind: FeatureStore
+metadata:
+  name: rag-demo
+  namespace: __NAMESPACE__
+  labels:
+    feature-store-ui: enabled
+spec:
+  feastProject: rag_demo
+  feastProjectDir:
+    git:
+      url: __FEATURE_REPO_URL__
+      ref: __FEATURE_REPO_REF__
+  batchEngine:
+    configMapRef:
+      name: feast-ray-batch-engine
+  services:
+    offlineStore:
+      persistence:
+        store:
+          type: postgres
+          secretRef:
+            name: feast-data-stores
+      server:
+        envFrom:
+        - secretRef:
+            name: postgres-secret
+        resources:
+          requests:
+            cpu: 150m
+            memory: 256Mi
+    onlineStore:
+      persistence:
+        store:
+          type: milvus
+          secretRef:
+            name: feast-data-stores
+      server:
+        envFrom:
+        - secretRef:
+            name: postgres-secret
+        env:
+        - name: MPLCONFIGDIR
+          value: /tmp
+        resources:
+          requests:
+            cpu: 150m
+            memory: 256Mi
+    registry:
+      local:
+        persistence:
+          store:
+            type: sql
+            secretRef:
+              name: feast-data-stores
+        server:
+          envFrom:
+          - secretRef:
+              name: postgres-secret
+          env:
+          - name: MPLCONFIGDIR
+            value: /tmp
+          resources:
+            requests:
+              cpu: 150m
+              memory: 128Mi
+          restAPI: true

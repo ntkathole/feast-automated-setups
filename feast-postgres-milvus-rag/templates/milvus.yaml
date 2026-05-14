@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: milvus
+  namespace: __NAMESPACE__
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: milvus
+  template:
+    metadata:
+      labels:
+        app: milvus
+    spec:
+      containers:
+        - name: etcd
+          image: 'quay.io/coreos/etcd:v3.5.16'
+          command: ['etcd']
+          args:
+            - '--advertise-client-urls=http://127.0.0.1:2379'
+            - '--listen-client-urls=http://0.0.0.0:2379'
+            - '--data-dir=/etcd-data'
+          ports:
+            - containerPort: 2379
+          volumeMounts:
+            - mountPath: /etcd-data
+              name: etcd-data
+        - name: milvus
+          image: 'milvusdb/milvus:v2.5.8'
+          command: ['milvus', 'run', 'standalone']
+          env:
+            - name: ETCD_ENDPOINTS
+              value: '127.0.0.1:2379'
+            - name: MILVUS_STORAGE_TYPE
+              value: 'local'
+          ports:
+            - containerPort: 19530
+              name: grpc
+            - containerPort: 9091
+              name: metrics
+          volumeMounts:
+            - mountPath: /var/lib/milvus
+              name: milvus-data
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 9091
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 9091
+            initialDelaySeconds: 60
+            periodSeconds: 30
+      volumes:
+        - name: etcd-data
+          emptyDir: {}
+        - name: milvus-data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: milvus
+  namespace: __NAMESPACE__
+  labels:
+    app: milvus
+spec:
+  type: ClusterIP
+  ports:
+    - port: 19530
+      targetPort: 19530
+      protocol: TCP
+      name: grpc
+    - port: 9091
+      targetPort: 9091
+      protocol: TCP
+      name: metrics
+  selector:
+    app: milvus

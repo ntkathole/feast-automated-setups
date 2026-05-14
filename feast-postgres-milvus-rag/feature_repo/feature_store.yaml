@@ -1,0 +1,42 @@
+project: rag_demo
+provider: local
+
+# PostgreSQL offline store (matches the operator CR configuration)
+offline_store:
+  type: postgres
+  host: postgres.feast.svc.cluster.local
+  port: 5432
+  database: feast
+  db_schema: public
+  user: feast
+  password: feast
+
+# Ray compute engine for distributed embedding generation
+batch_engine:
+  type: ray.engine
+  ray_address: "ray://feast-ray-head-svc.feast-rag.svc.cluster.local:10001"
+  max_workers: 4
+  enable_optimization: true
+  broadcast_join_threshold_mb: 100
+  target_partition_size_mb: 64
+
+# Milvus online store for vector similarity search
+online_store:
+  type: milvus
+  host: http://milvus.feast.svc.cluster.local
+  port: 19530
+  vector_enabled: true
+  embedding_dim: 384
+  index_type: IVF_FLAT
+  metric_type: COSINE
+
+# PostgreSQL registry
+registry:
+  registry_type: sql
+  path: postgresql+psycopg://feast:feast@postgres.feast.svc.cluster.local:5432/feast
+  cache_ttl_seconds: 10
+  sqlalchemy_config_kwargs:
+    echo: false
+    pool_pre_ping: true
+
+entity_key_serialization_version: 3

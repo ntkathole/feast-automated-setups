@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: feast-ray-batch-engine
+  namespace: __NAMESPACE__
+data:
+  config: |
+    type: ray.engine
+    ray_address: ray://feast-ray-head-svc.__NAMESPACE__.svc.cluster.local:10001
+    max_workers: 4
+    enable_optimization: true
+    broadcast_join_threshold_mb: 100
+    target_partition_size_mb: 64
+    window_size_for_joins: 1H
