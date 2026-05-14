@@ -28,6 +28,7 @@ Options:
       --kuberay-version VER  KubeRay version to install (default: ${DEFAULT_KUBERAY_VERSION})
   -g, --git-url URL          Git repo URL containing the feature_repo (required)
   -r, --git-ref REF          Git branch/tag/commit to checkout (default: main)
+  -p, --repo-path PATH       Path to feature_repo within the Git repo (default: feature_repo)
       --skip-datastores      Skip deploying Milvus and PostgreSQL (if already running)
       --skip-ray             Skip deploying the RayCluster (if already running)
       --skip-feast           Skip deploying the FeatureStore CR (deploy only infra)
@@ -63,6 +64,7 @@ WAIT_TIMEOUT=180
 APPLY_TIMEOUT=600
 FEATURE_REPO_URL=""
 FEATURE_REPO_REF="main"
+FEATURE_REPO_PATH="feature_repo"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -73,6 +75,7 @@ while [[ $# -gt 0 ]]; do
         --kuberay-version)    KUBERAY_VERSION="$2"; shift 2 ;;
         -g|--git-url)         FEATURE_REPO_URL="$2"; shift 2 ;;
         -r|--git-ref)         FEATURE_REPO_REF="$2"; shift 2 ;;
+        -p|--repo-path)       FEATURE_REPO_PATH="$2"; shift 2 ;;
         --skip-datastores)    SKIP_DATASTORES=true; shift ;;
         --skip-ray)           SKIP_RAY=true; shift ;;
         --skip-feast)         SKIP_FEAST=true; shift ;;
@@ -112,6 +115,7 @@ render_templates() {
         sed -e "s/__NAMESPACE__/${NAMESPACE}/g" \
             -e "s|__FEATURE_REPO_URL__|${FEATURE_REPO_URL}|g" \
             -e "s/__FEATURE_REPO_REF__/${FEATURE_REPO_REF}/g" \
+            -e "s|__FEATURE_REPO_PATH__|${FEATURE_REPO_PATH}|g" \
             "${tmpl}" > "${GENERATED_DIR}/${filename}"
     done
     ok "Generated manifests written to ${GENERATED_DIR}/"

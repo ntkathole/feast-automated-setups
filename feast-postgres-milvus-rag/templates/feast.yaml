@@ -38,6 +38,7 @@ spec:
     git:
       url: __FEATURE_REPO_URL__
       ref: __FEATURE_REPO_REF__
+      featureRepoPath: __FEATURE_REPO_PATH__
   batchEngine:
     configMapRef:
       name: feast-ray-batch-engine
