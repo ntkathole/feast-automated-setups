@@ -49,6 +49,9 @@ spec:
         envFrom:
         - secretRef:
             name: postgres-secret
+        env:
+        - name: HF_HOME
+          value: /tmp/hf_cache
         resources:
           requests:
             cpu: 150m
