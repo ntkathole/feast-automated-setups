@@ -4,7 +4,7 @@ provider: local
 # PostgreSQL offline store (matches the operator CR configuration)
 offline_store:
   type: postgres
-  host: postgres.feast.svc.cluster.local
+  host: postgres.feast-rag.svc.cluster.local
   port: 5432
   database: feast
   db_schema: public
@@ -23,7 +23,7 @@ batch_engine:
 # Milvus online store for vector similarity search
 online_store:
   type: milvus
-  host: http://milvus.feast.svc.cluster.local
+  host: http://milvus.feast-rag.svc.cluster.local
   port: 19530
   vector_enabled: true
   embedding_dim: 384
@@ -33,7 +33,7 @@ online_store:
 # PostgreSQL registry
 registry:
   registry_type: sql
-  path: postgresql+psycopg://feast:feast@postgres.feast.svc.cluster.local:5432/feast
+  path: postgresql+psycopg://feast:feast@postgres.feast-rag.svc.cluster.local:5432/feast
   cache_ttl_seconds: 10
   sqlalchemy_config_kwargs:
     echo: false

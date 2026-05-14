@@ -25,7 +25,7 @@ stringData:
     index_type: IVF_FLAT
     metric_type: COSINE
 ---
-apiVersion: feast.dev/v1alpha1
+apiVersion: feast.dev/v1
 kind: FeatureStore
 metadata:
   name: rag-demo
