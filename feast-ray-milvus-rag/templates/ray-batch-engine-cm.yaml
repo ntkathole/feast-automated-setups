@@ -10,6 +10,11 @@ data:
     kuberay_conf:
       cluster_name: feast-ray
       namespace: __NAMESPACE__
+      runtime_env:
+        pip:
+          - datasets
+          - sentence-transformers
+        working_dir: __FEATURE_REPO_DIR__
     max_workers: 4
     enable_optimization: true
     broadcast_join_threshold_mb: 100

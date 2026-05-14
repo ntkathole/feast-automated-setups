@@ -1,15 +1,10 @@
 project: rag_demo
 provider: local
 
-# PostgreSQL offline store (matches the operator CR configuration)
+# Ray offline store (handles RaySource natively via ray.data)
 offline_store:
-  type: postgres
-  host: postgres.feast-rag.svc.cluster.local
-  port: 5432
-  database: feast
-  db_schema: public
-  user: feast
-  password: feast
+  type: ray
+  storage_path: /tmp/feast-ray-storage
 
 # Ray compute engine for distributed embedding generation
 batch_engine:

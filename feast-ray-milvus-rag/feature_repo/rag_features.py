@@ -108,15 +108,9 @@ class PassageEmbeddingProcessor:
 
 def generate_passage_embeddings(ds):
     """Ray-native UDF: distributed embedding generation over SQuAD passages."""
-    num_blocks = ds.num_blocks()
-    max_workers = 4
-    if num_blocks < max_workers:
-        ds = ds.repartition(max_workers)
-
     return ds.map_batches(
         PassageEmbeddingProcessor,
         batch_format="pandas",
-        concurrency=max_workers,
         batch_size=512,
     )
 

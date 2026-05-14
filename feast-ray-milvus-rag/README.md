@@ -1,10 +1,10 @@
-# Feast RAG with Milvus + PostgreSQL + Ray (KubeRay)
+# Feast RAG with Ray + Milvus + PostgreSQL (KubeRay)
 
 Automated setup for deploying a **RAG (Retrieval-Augmented Generation)** pipeline on Kubernetes/OpenShift using the Feast Operator, backed by:
 
+- **Ray** as the offline store and compute engine (distributed processing via KubeRay + codeflare-sdk)
 - **Milvus** as the online store (vector similarity search)
-- **PostgreSQL** as the offline store and registry
-- **Ray** via KubeRay as the compute engine (distributed embedding generation)
+- **PostgreSQL** as the registry
 - **HuggingFace SQuAD** dataset read via `RaySource`
 
 ## Architecture
@@ -17,7 +17,8 @@ Automated setup for deploying a **RAG (Retrieval-Augmented Generation)** pipelin
                                │
                     ┌──────────▼──────────────────────┐
                     │   KubeRay Cluster                │
-                    │   (head + 2 workers)             │
+                    │   (head + 1 worker)              │
+                    │   created via codeflare-sdk      │
                     │   distributed embedding gen      │
                     │   sentence-transformers/          │
                     │   all-MiniLM-L6-v2 (384-dim)     │
@@ -26,9 +27,9 @@ Automated setup for deploying a **RAG (Retrieval-Augmented Generation)** pipelin
               ┌────────────────┼────────────────┐
               │                │                │
     ┌─────────▼────────┐ ┌────▼──────┐ ┌──────▼─────────┐
-    │   PostgreSQL      │ │ PostgreSQL│ │   Milvus        │
+    │   Ray             │ │ PostgreSQL│ │   Milvus        │
     │   (offline store) │ │ (registry)│ │   (online store)│
-    │   raw features    │ │ SQL-based │ │   vector search │
+    │   data processing │ │ SQL-based │ │   vector search │
     └──────────────────┘ └───────────┘ └────────────────┘
 ```
 
@@ -42,14 +43,17 @@ Automated setup for deploying a **RAG (Retrieval-Augmented Generation)** pipelin
 ## Directory Structure
 
 ```
-feast-postgres-milvus-rag/
+feast-ray-milvus-rag/
 ├── setup.sh                       # Deploy everything
 ├── teardown.sh                    # Remove everything cleanly
+├── create_ray_cluster.py          # Create/delete Ray cluster via codeflare-sdk
+├── Dockerfile.feature-server      # Custom feature server image (feast[ray] + patches)
+├── ray_initializer.py             # Patched ray_initializer.py for the custom image
+├── rag_demo.ipynb                 # Jupyter notebook for the RAG workflow demo
 ├── templates/
 │   ├── postgres.yaml              # PostgreSQL Secret + Deployment + Service
-│   ├── milvus.yaml                # Milvus (standalone + etcd) Deployment + Service
-│   ├── raycluster.yaml            # KubeRay RayCluster CR (head + workers)
-│   ├── ray-batch-engine-cm.yaml   # ConfigMap for Feast batch engine → Ray
+│   ├── milvus.yaml                # Milvus (standalone + etcd + MinIO) Deployment + Service
+│   ├── ray-batch-engine-cm.yaml   # ConfigMap for Feast batch engine → Ray (with runtime_env)
 │   └── feast.yaml                 # Feast Secrets + FeatureStore CR (with batchEngine ref)
 ├── feature_repo/                  # Feature definitions (host in your own Git repo)
 │   ├── feature_store.yaml         # Local testing reference config
@@ -76,7 +80,8 @@ The `feature_repo/` directory contains the Feast feature definitions for the RAG
 - **RaySource with HuggingFace reader**: Uses `reader_type="huggingface"` to load `rajpurkar/squad` directly via `ray.data.from_huggingface()` - no local data files needed
 - **Ray-native BatchFeatureView**: The `PassageEmbeddingProcessor` class is a Ray actor that loads the embedding model once per worker and processes batches efficiently
 - **sentence-transformers/all-MiniLM-L6-v2**: 384-dimensional embeddings with cosine similarity, suitable for passage retrieval
-- **PostgreSQL dual-use**: Same PostgreSQL instance serves as both offline store (for raw feature storage) and registry (SQL-based metadata)
+- **Ray offline store**: Uses `RayOfflineStore` to natively handle `RaySource` data loading and processing
+- **PostgreSQL registry**: SQL-based metadata storage for feature definitions
 
 ### Hosting the Feature Repo
 
@@ -152,20 +157,20 @@ KUBECTL_CMD=oc ./setup.sh -n feast-rag -c -o --kuberay-install \
 4. **Feast Operator install** (optional) - applies `infra/feast-operator/dist/install.yaml`
 5. **KubeRay operator install** (optional) - installs from `opendatahub-io/kuberay` via kustomize
 6. **Datastore deployment** - deploys PostgreSQL and Milvus (standalone with embedded etcd), waits for readiness
-7. **Ray cluster deployment** - deploys `RayCluster` CR (1 head + 2 workers) and the batch engine `ConfigMap`, waits for all Ray pods
+7. **Ray cluster deployment** - creates Ray cluster via codeflare-sdk (1 head + 1 worker) and the batch engine `ConfigMap`, waits for all Ray pods
 8. **FeatureStore deployment** - applies secrets and FeatureStore CR (with `batchEngine` referencing the Ray ConfigMap), polls until Ready
 9. **Feast apply** - triggers a one-off Job from the operator-created CronJob to register feature definitions
 
 ## Ray Cluster Details
 
-The setup deploys a KubeRay `RayCluster` with:
+The Ray cluster is created programmatically via **codeflare-sdk** (see `create_ray_cluster.py`):
 
 | Component | Replicas | Image | Resources |
 |-----------|----------|-------|-----------|
-| Head node | 1 | `quay.io/modh/ray:2.35.0-py311-cu121` | 1-2 CPU, 4-8Gi memory |
-| Workers | 2 (autoscale 1-4) | `quay.io/modh/ray:2.35.0-py311-cu121` | 1-2 CPU, 4-8Gi memory |
+| Head node | 1 | `quay.io/modh/ray:2.54.1-py312-cu128` | 1 CPU, 3-6Gi memory |
+| Workers | 1 | `quay.io/modh/ray:2.54.1-py312-cu128` | 1 CPU, 2-4Gi memory |
 
-The Feast Operator connects to Ray via a `ConfigMap` (`feast-ray-batch-engine`) that configures `batch_engine.type: ray.engine` with `ray_address` pointing to the Ray head service.
+The Feast Operator connects to Ray via a `ConfigMap` (`feast-ray-batch-engine`) that configures `batch_engine.type: ray.engine` with `use_kuberay: true` and `kuberay_conf` pointing to the cluster. A `runtime_env` in `kuberay_conf` installs `datasets` and `sentence-transformers` on the Ray workers at connection time.
 
 ## Post-Deployment: Materialization
 
@@ -205,32 +210,17 @@ Update `EMBED_MODEL_ID` and `EMBEDDING_DIM` in `rag_features.py`, and update the
 
 ### Scaling the Ray Cluster
 
-Edit `templates/raycluster.yaml` to adjust worker count and resources:
+Use `create_ray_cluster.py` to adjust worker count and resources:
 
-```yaml
-workerGroupSpecs:
-  - groupName: feast-workers
-    replicas: 4         # increase for more parallelism
-    maxReplicas: 8
-    ...
-    resources:
-      requests:
-        cpu: "2"
-        memory: 8Gi
+```bash
+python create_ray_cluster.py --workers 4 --worker-memory 4 --worker-memory-limit 8
 ```
 
 ### GPU-Accelerated Embeddings
 
-Add GPU resources to Ray workers and update the batch engine ConfigMap:
+Add GPU resources via codeflare-sdk and update the batch engine ConfigMap:
 
 ```yaml
-# In raycluster.yaml - workerGroupSpecs
-rayStartParams:
-  num-gpus: "1"
-resources:
-  limits:
-    nvidia.com/gpu: "1"
-
 # In ray-batch-engine-cm.yaml
 config: |
   type: ray.engine
@@ -247,12 +237,12 @@ export KUBECTL_CMD=oc
 
 ## Comparison with feast-postgres-redis
 
-| Aspect | feast-postgres-redis | feast-postgres-milvus-rag |
+| Aspect | feast-postgres-redis | feast-ray-milvus-rag |
 |--------|---------------------|--------------------------|
 | Online store | Redis | Milvus (vector search) |
-| Offline store | DuckDB (file) | PostgreSQL |
+| Offline store | DuckDB (file) | Ray |
 | Registry | PostgreSQL (SQL) | PostgreSQL (SQL) |
-| Compute engine | Default (local) | Ray via KubeRay |
+| Compute engine | Default (local) | Ray via KubeRay (codeflare-sdk) |
 | Data source | Git-hosted parquet | HuggingFace via RaySource |
 | Use case | Credit scoring | RAG document retrieval |
 | Embedding support | No | Yes (384-dim, cosine) |
@@ -261,5 +251,5 @@ export KUBECTL_CMD=oc
 ## Dependencies (for local feature repo development)
 
 ```bash
-pip install feast[ray,postgres] sentence-transformers pymilvus psycopg2-binary datasets
+pip install feast[ray] sentence-transformers pymilvus psycopg2-binary datasets codeflare-sdk
 ```
