@@ -1,12 +1,19 @@
 """
 RAG Feature Definitions - HuggingFace Dataset with Ray Compute Engine
 
-Uses RaySource to read a HuggingFace dataset (SQuAD) and a Ray-native
-BatchFeatureView to generate embeddings with sentence-transformers for
-vector similarity search via Milvus.
+Uses a BatchFeatureView in Ray-native mode to generate embeddings with
+sentence-transformers for vector similarity search via Milvus.
+
+The data source uses FileSource so that `feast apply` works in any
+environment (the operator's feature-server image does not ship `ray`).
+At materialization time the Ray compute engine handles distributed
+processing of the data via the UDF.
+
+A bootstrap script (bootstrap_data.py) downloads the HuggingFace SQuAD
+dataset and converts it to the parquet file referenced below.
 
 Stack:
-  - Data source:   HuggingFace 'rajpurkar/squad' via RaySource
+  - Data source:   HuggingFace 'rajpurkar/squad' (pre-downloaded parquet)
   - Compute:       Ray batch engine (distributed embedding generation)
   - Online store:  Milvus (vector search)
   - Offline store: PostgreSQL
@@ -14,15 +21,16 @@ Stack:
 """
 
 from datetime import timedelta
+from pathlib import Path
 
 import pandas as pd
 
-from feast import BatchFeatureView, Entity, FeatureService, Field, ValueType
-from feast.infra.offline_stores.contrib.ray_offline_store.ray_source import RaySource
-from feast.types import Array, Float32, Int64, String
+from feast import BatchFeatureView, Entity, FeatureService, Field, FileSource, ValueType
+from feast.types import Array, Float32, String
 
 EMBED_MODEL_ID = "sentence-transformers/all-MiniLM-L6-v2"
 EMBEDDING_DIM = 384
+CURRENT_DIR = Path(__file__).parent
 
 # ---------------------------------------------------------------------------
 # Entity
@@ -35,17 +43,13 @@ passage = Entity(
 )
 
 # ---------------------------------------------------------------------------
-# Data Source - HuggingFace SQuAD dataset read via Ray
+# Data Source - SQuAD passages as parquet (downloaded by bootstrap_data.py)
 # ---------------------------------------------------------------------------
-squad_source = RaySource(
+squad_source = FileSource(
     name="squad_passages",
-    reader_type="huggingface",
-    reader_options={
-        "dataset_name": "rajpurkar/squad",
-        "split": "train",
-    },
+    path=str(CURRENT_DIR / "data" / "squad_passages.parquet"),
     timestamp_field="event_timestamp",
-    description="SQuAD Wikipedia passages loaded via ray.data.from_huggingface",
+    description="SQuAD Wikipedia passages (from HuggingFace, converted to parquet)",
 )
 
 
@@ -68,7 +72,8 @@ class PassageEmbeddingProcessor:
     def __call__(self, batch: pd.DataFrame) -> pd.DataFrame:
         batch = batch.copy()
 
-        batch["passage_id"] = [f"squad_{i}" for i in range(len(batch))]
+        if "passage_id" not in batch.columns:
+            batch["passage_id"] = [f"squad_{i}" for i in range(len(batch))]
 
         if "context" in batch.columns:
             texts = batch["context"].fillna("").tolist()
@@ -95,7 +100,8 @@ class PassageEmbeddingProcessor:
         if "context" not in batch.columns:
             batch["context"] = ""
 
-        batch["event_timestamp"] = pd.Timestamp.now(tz="UTC")
+        if "event_timestamp" not in batch.columns:
+            batch["event_timestamp"] = pd.Timestamp.now(tz="UTC")
 
         return batch
 

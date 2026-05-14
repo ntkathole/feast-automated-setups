@@ -25,7 +25,7 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: 'postgres:16-alpine'
+          image: 'mirror.gcr.io/library/postgres:16-alpine'
           ports:
             - containerPort: 5432
           envFrom:

@@ -1,0 +1,4 @@
+FROM quay.io/feastdev-ci/feature-server:develop
+
+RUN uv pip install --no-cache-dir \
+    "feast[ray]"

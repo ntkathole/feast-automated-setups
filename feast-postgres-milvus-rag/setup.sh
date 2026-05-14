@@ -26,6 +26,7 @@ Options:
   -o, --operator-install     Also install the Feast Operator (from dist/install.yaml)
       --kuberay-install      Also install the KubeRay operator
       --kuberay-version VER  KubeRay version to install (default: ${DEFAULT_KUBERAY_VERSION})
+  -i, --image IMAGE          Custom feature-server image (default: quay.io/feastdev/feature-server:develop)
   -g, --git-url URL          Git repo URL containing the feature_repo (required)
   -r, --git-ref REF          Git branch/tag/commit to checkout (default: main)
   -p, --repo-path PATH       Path to feature_repo within the Git repo (default: feature_repo)
@@ -62,6 +63,7 @@ SKIP_FEAST=false
 SKIP_APPLY=false
 WAIT_TIMEOUT=180
 APPLY_TIMEOUT=600
+FEATURE_SERVER_IMAGE="quay.io/feastdev/feature-server:develop"
 FEATURE_REPO_URL=""
 FEATURE_REPO_REF="main"
 FEATURE_REPO_PATH="feature_repo"
@@ -73,6 +75,7 @@ while [[ $# -gt 0 ]]; do
         -o|--operator-install) INSTALL_OPERATOR=true; shift ;;
         --kuberay-install)    INSTALL_KUBERAY=true; shift ;;
         --kuberay-version)    KUBERAY_VERSION="$2"; shift 2 ;;
+        -i|--image)           FEATURE_SERVER_IMAGE="$2"; shift 2 ;;
         -g|--git-url)         FEATURE_REPO_URL="$2"; shift 2 ;;
         -r|--git-ref)         FEATURE_REPO_REF="$2"; shift 2 ;;
         -p|--repo-path)       FEATURE_REPO_PATH="$2"; shift 2 ;;
@@ -116,6 +119,7 @@ render_templates() {
             -e "s|__FEATURE_REPO_URL__|${FEATURE_REPO_URL}|g" \
             -e "s/__FEATURE_REPO_REF__/${FEATURE_REPO_REF}/g" \
             -e "s|__FEATURE_REPO_PATH__|${FEATURE_REPO_PATH}|g" \
+            -e "s|__FEATURE_SERVER_IMAGE__|${FEATURE_SERVER_IMAGE}|g" \
             "${tmpl}" > "${GENERATED_DIR}/${filename}"
     done
     ok "Generated manifests written to ${GENERATED_DIR}/"
