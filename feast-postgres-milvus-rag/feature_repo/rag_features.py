@@ -4,16 +4,13 @@ RAG Feature Definitions - HuggingFace Dataset with Ray Compute Engine
 Uses a BatchFeatureView in Ray-native mode to generate embeddings with
 sentence-transformers for vector similarity search via Milvus.
 
-The data source uses FileSource so that `feast apply` works in any
-environment (the operator's feature-server image does not ship `ray`).
+The data source uses RaySource with reader_type="huggingface" to read the
+SQuAD dataset directly from HuggingFace via ray.data.from_huggingface().
 At materialization time the Ray compute engine handles distributed
-processing of the data via the UDF.
-
-A bootstrap script (bootstrap_data.py) downloads the HuggingFace SQuAD
-dataset and converts it to the parquet file referenced below.
+processing and embedding generation via the UDF.
 
 Stack:
-  - Data source:   HuggingFace 'rajpurkar/squad' (pre-downloaded parquet)
+  - Data source:   HuggingFace 'rajpurkar/squad' via RaySource
   - Compute:       Ray batch engine (distributed embedding generation)
   - Online store:  Milvus (vector search)
   - Offline store: PostgreSQL
@@ -21,16 +18,15 @@ Stack:
 """
 
 from datetime import timedelta
-from pathlib import Path
 
 import pandas as pd
 
-from feast import BatchFeatureView, Entity, FeatureService, Field, FileSource, ValueType
+from feast import BatchFeatureView, Entity, FeatureService, Field, ValueType
+from feast.infra.offline_stores.contrib.ray_offline_store.ray_source import RaySource
 from feast.types import Array, Float32, String
 
 EMBED_MODEL_ID = "sentence-transformers/all-MiniLM-L6-v2"
 EMBEDDING_DIM = 384
-CURRENT_DIR = Path(__file__).parent
 
 # ---------------------------------------------------------------------------
 # Entity
@@ -43,13 +39,17 @@ passage = Entity(
 )
 
 # ---------------------------------------------------------------------------
-# Data Source - SQuAD passages as parquet (downloaded by bootstrap_data.py)
+# Data Source - SQuAD passages via RaySource (HuggingFace reader)
 # ---------------------------------------------------------------------------
-squad_source = FileSource(
+squad_source = RaySource(
     name="squad_passages",
-    path=str(CURRENT_DIR / "data" / "squad_passages.parquet"),
+    reader_type="huggingface",
+    reader_options={
+        "dataset_name": "rajpurkar/squad",
+        "split": "train",
+    },
     timestamp_field="event_timestamp",
-    description="SQuAD Wikipedia passages (from HuggingFace, converted to parquet)",
+    description="SQuAD Wikipedia passages read directly from HuggingFace via Ray",
 )
 
 
