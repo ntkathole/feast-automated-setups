@@ -93,14 +93,14 @@ remove_ray_cluster() {
         return 0
     fi
 
-    local raycluster_yaml="${GENERATED_DIR}/raycluster.yaml"
-    if [[ -f "${raycluster_yaml}" ]]; then
-        info "Removing RayCluster..."
-        ${KUBECTL_CMD} delete -f "${raycluster_yaml}" --ignore-not-found
-    else
-        info "Removing RayCluster by name..."
-        ${KUBECTL_CMD} delete raycluster feast-ray -n "${NAMESPACE}" --ignore-not-found
+    info "Removing Ray cluster 'feast-ray'..."
+    if command -v python3 &>/dev/null; then
+        python3 "${SCRIPT_DIR}/create_ray_cluster.py" \
+            --name feast-ray --namespace "${NAMESPACE}" --down 2>/dev/null || \
+            info "codeflare-sdk cleanup failed, falling back to kubectl..."
     fi
+
+    ${KUBECTL_CMD} delete raycluster feast-ray -n "${NAMESPACE}" --ignore-not-found 2>/dev/null || true
 
     local cm_yaml="${GENERATED_DIR}/ray-batch-engine-cm.yaml"
     if [[ -f "${cm_yaml}" ]]; then

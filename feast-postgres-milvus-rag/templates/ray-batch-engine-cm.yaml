@@ -6,7 +6,10 @@ metadata:
 data:
   config: |
     type: ray.engine
-    ray_address: ray://feast-ray-head-svc.__NAMESPACE__.svc.cluster.local:10001
+    use_kuberay: true
+    kuberay_conf:
+      cluster_name: feast-ray
+      namespace: __NAMESPACE__
     max_workers: 4
     enable_optimization: true
     broadcast_join_threshold_mb: 100

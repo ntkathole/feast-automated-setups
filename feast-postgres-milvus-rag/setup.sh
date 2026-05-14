@@ -17,7 +17,7 @@ Usage: $(basename "$0") [OPTIONS]
 Deploy a RAG pipeline using the Feast Operator with:
   - PostgreSQL  as registry (SQL) and offline store
   - Milvus      as online store (vector search)
-  - Ray cluster as compute engine (distributed embedding generation via KubeRay)
+  - Ray cluster as compute engine (created via codeflare-sdk)
   - HuggingFace SQuAD dataset read via RaySource
 
 Options:
@@ -219,33 +219,21 @@ deploy_ray_cluster() {
         return 0
     fi
 
-    if ! ${KUBECTL_CMD} api-resources --api-group=ray.io 2>/dev/null | grep -q RayCluster; then
-        warn "RayCluster CRD not found. Install KubeRay operator first (--kuberay-install)."
-        warn "Skipping Ray cluster deployment."
-        return 0
+    if ! command -v python3 &>/dev/null; then
+        error "python3 is required for Ray cluster creation via codeflare-sdk"
     fi
 
-    info "Deploying RayCluster..."
-    ${KUBECTL_CMD} apply -f "${GENERATED_DIR}/raycluster.yaml"
-    ok "RayCluster CR applied"
+    info "Creating Ray cluster via codeflare-sdk..."
+    python3 "${SCRIPT_DIR}/create_ray_cluster.py" \
+        --name feast-ray \
+        --namespace "${NAMESPACE}" || \
+        error "Failed to create Ray cluster. Ensure codeflare-sdk is installed: pip install codeflare-sdk"
+
+    ok "Ray cluster created via codeflare-sdk"
 
     info "Deploying Ray batch engine ConfigMap..."
     ${KUBECTL_CMD} apply -f "${GENERATED_DIR}/ray-batch-engine-cm.yaml"
     ok "Ray batch engine ConfigMap applied"
-
-    info "Waiting for Ray head pod to be ready (timeout: ${WAIT_TIMEOUT}s)..."
-    ${KUBECTL_CMD} wait --for=condition=ready pod \
-        -l ray.io/group=headgroup -n "${NAMESPACE}" \
-        --timeout="${WAIT_TIMEOUT}s" 2>/dev/null || \
-        warn "Ray head readiness check timed out"
-
-    info "Waiting for Ray worker pods to be ready (timeout: ${WAIT_TIMEOUT}s)..."
-    ${KUBECTL_CMD} wait --for=condition=ready pod \
-        -l ray.io/group=workergroup -n "${NAMESPACE}" \
-        --timeout="${WAIT_TIMEOUT}s" 2>/dev/null || \
-        warn "Ray worker readiness check timed out"
-
-    ok "Ray cluster is ready"
 }
 
 get_featurestore_name() {
@@ -344,7 +332,7 @@ print_summary() {
     echo "=============================================="
     echo "  Namespace:      ${NAMESPACE}"
     echo "  Datastores:     $(${SKIP_DATASTORES} && echo 'skipped' || echo 'deployed (PostgreSQL + Milvus)')"
-    echo "  Ray Cluster:    $(${SKIP_RAY} && echo 'skipped' || echo 'deployed (KubeRay)')"
+    echo "  Ray Cluster:    $(${SKIP_RAY} && echo 'skipped' || echo 'deployed (codeflare-sdk)')"
     echo "  Feast CR:       $(${SKIP_FEAST} && echo 'skipped' || echo 'deployed')"
     echo "  Feast Operator: $(${INSTALL_OPERATOR} && echo 'installed' || echo 'skipped')"
     echo "  KubeRay:        $(${INSTALL_KUBERAY} && echo 'installed' || echo 'skipped')"
@@ -352,7 +340,7 @@ print_summary() {
     echo "  Online Store:   Milvus (vector search)"
     echo "  Offline Store:  PostgreSQL"
     echo "  Registry:       PostgreSQL (SQL)"
-    echo "  Batch Engine:   Ray (via KubeRay cluster)"
+    echo "  Batch Engine:   Ray (via codeflare-sdk / KubeRay)"
     echo "  Feature Repo:   ${FEATURE_REPO_URL:-N/A} (ref: ${FEATURE_REPO_REF})"
     echo "=============================================="
     echo ""
