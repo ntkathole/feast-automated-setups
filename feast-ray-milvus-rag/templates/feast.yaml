@@ -39,7 +39,6 @@ spec:
       name: feast-ray-batch-engine
   cronJob:
     containerConfigs:
-      image: __FEATURE_SERVER_IMAGE__
       env:
       - name: HF_HOME
         value: /tmp/hf_cache
@@ -76,6 +75,8 @@ spec:
         env:
         - name: MPLCONFIGDIR
           value: /tmp
+        - name: HF_HOME
+          value: /tmp/hf_cache
         resources:
           requests:
             cpu: 150m
@@ -95,6 +96,8 @@ spec:
           env:
           - name: MPLCONFIGDIR
             value: /tmp
+          - name: HF_HOME
+            value: /tmp/hf_cache
           resources:
             requests:
               cpu: 150m
