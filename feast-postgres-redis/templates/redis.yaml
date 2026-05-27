@@ -15,12 +15,9 @@ spec:
     spec:
       containers:
         - name: redis
-          image: 'bitnami/redis:latest'
+          image: 'quay.io/sclorg/redis-7-c9s:latest'
           ports:
             - containerPort: 6379
-          env:
-          - name: ALLOW_EMPTY_PASSWORD
-            value: "yes"
 ---
 apiVersion: v1
 kind: Service
