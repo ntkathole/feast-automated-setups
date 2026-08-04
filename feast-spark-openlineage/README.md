@@ -8,7 +8,8 @@
 | FeatureStore | `overlays/featurestore.yaml` |
 | Batch engine | `spark_application` (Kubeflow Spark Operator CRDs) |
 | Lineage | Feast OpenLineage **consumer** on registry REST (`/v1/lineage`) |
-| Images | `quay.io/nkathole/feature-server:develop-openlineage-spark` (feastdev-ci develop + OL + pyspark), `quay.io/nkathole/feast-spark-application:0.65-ol` |
+| Images | `quay.io/nkathole/feature-server:develop-openlineage-spark` (Feast + OL + pyspark); `…:spark-application-0.65-ol-listener` (Spark 4 + Feast driver + **openlineage-spark** listener JAR) |
+| Spark → Feast OL | `spark_conf` on the batch-engine ConfigMap (`OpenLineageSparkListener` → registry-rest `/v1/lineage`) |
 
 ## Prerequisites
 

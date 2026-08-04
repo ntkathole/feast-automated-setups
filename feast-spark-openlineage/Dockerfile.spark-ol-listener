@@ -1,0 +1,11 @@
+# Layer openlineage-spark listener onto the Feast SparkApplication image.
+# Build context: directory containing the downloaded JAR.
+#
+#   curl -fsSL -o openlineage-spark_2.13-1.52.0.jar \
+#     https://repo1.maven.org/maven2/io/openlineage/openlineage-spark_2.13/1.52.0/openlineage-spark_2.13-1.52.0.jar
+#   docker build -f Dockerfile.spark-ol-listener \
+#     -t quay.io/nkathole/feature-server:spark-application-0.65-ol .
+FROM quay.io/nkathole/feature-server:spark-application-0.65-ol
+USER root
+COPY openlineage-spark_2.13-1.52.0.jar /opt/spark/jars/openlineage-spark_2.13-1.52.0.jar
+USER spark

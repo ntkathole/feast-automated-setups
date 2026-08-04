@@ -2,7 +2,8 @@
 # Images:
 #   feature-server: quay.io/nkathole/feature-server:develop-openlineage-spark
 #     (feastdev-ci develop + openlineage-python + pyspark)
-#   spark driver/executor: quay.io/nkathole/feature-server:spark-application-0.65-ol
+#   spark driver/executor: quay.io/nkathole/feature-server:spark-application-0.65-ol-listener
+#     (Spark 4.0.1 + Feast spark_application main + openlineage-spark listener JAR)
 ---
 apiVersion: v1
 kind: Secret
@@ -20,7 +21,7 @@ metadata:
 data:
   config: |
     type: spark_application
-    image: quay.io/nkathole/feature-server:spark-application-0.65-ol
+    image: quay.io/nkathole/feature-server:spark-application-0.65-ol-listener
     namespace: feast
     spark_version: "4.0.1"
     driver_cores: 1
@@ -31,6 +32,15 @@ data:
     job_timeout_seconds: 3600
     poll_interval_seconds: 10
     ttl_seconds_after_finished: 600
+    # Spark OpenLineage agent → Feast consumer (same /v1/lineage as Feast producer)
+    spark_conf:
+      spark.extraListeners: io.openlineage.spark.agent.OpenLineageSparkListener
+      spark.openlineage.namespace: customer_churn
+      spark.openlineage.transport.type: http
+      spark.openlineage.transport.url: http://feast-lineage-demo-registry-rest.feast.svc.cluster.local
+      spark.openlineage.transport.endpoint: /v1/lineage
+      spark.openlineage.transport.auth.type: api_key
+      spark.openlineage.transport.auth.apiKey: lineage-demo-consumer-key
     env:
       - name: POSTGRES_USER
         valueFrom:
@@ -88,6 +98,8 @@ spec:
         name: openlineage-consumer-secret
       namespaceMapping:
         customer_churn: customer_churn
+        # Spark OpenLineage jobs use the same logical namespace
+        spark_application: customer_churn
   cronJob:
     schedule: "0 */6 * * *"
     suspend: false
