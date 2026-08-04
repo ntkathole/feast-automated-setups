@@ -1,6 +1,6 @@
 # FeatureStore with SparkApplication compute engine + OpenLineage consumer.
 # Images:
-#   feature-server: quay.io/nkathole/feature-server:develop-openlineage-spark
+#   feature-server: quay.io/nkathole/feature-server:develop-openlineage-spark-parentlink
 #     (feastdev-ci develop + openlineage-python + pyspark)
 #   spark driver/executor: quay.io/nkathole/feature-server:spark-application-0.65-ol-listener
 #     (Spark 4.0.1 + Feast spark_application main + openlineage-spark listener JAR)
@@ -104,7 +104,7 @@ spec:
     schedule: "0 */6 * * *"
     suspend: false
     containerConfigs:
-      image: quay.io/nkathole/feature-server:develop-openlineage-spark
+      image: quay.io/nkathole/feature-server:develop-openlineage-spark-parentlink
       commands:
         - feast
         - materialize-incremental
@@ -117,7 +117,7 @@ spec:
           secretRef:
             name: feast-data-stores
       server:
-        image: quay.io/nkathole/feature-server:develop-openlineage-spark
+        image: quay.io/nkathole/feature-server:develop-openlineage-spark-parentlink
         tls:
           disable: true
         envFrom:
@@ -130,7 +130,7 @@ spec:
           secretRef:
             name: feast-data-stores
       server:
-        image: quay.io/nkathole/feature-server:develop-openlineage-spark
+        image: quay.io/nkathole/feature-server:develop-openlineage-spark-parentlink
         tls:
           disable: true
         envFrom:
@@ -144,7 +144,7 @@ spec:
             secretRef:
               name: feast-data-stores
         server:
-          image: quay.io/nkathole/feature-server:develop-openlineage-spark
+          image: quay.io/nkathole/feature-server:develop-openlineage-spark-parentlink
           restAPI: true
           tls:
             disable: true
@@ -152,7 +152,7 @@ spec:
             - secretRef:
                 name: postgres-secret
     ui:
-      image: quay.io/nkathole/feature-server:develop-openlineage-spark
+      image: quay.io/nkathole/feature-server:develop-openlineage-spark-parentlink
       envFrom:
         - secretRef:
             name: postgres-secret
