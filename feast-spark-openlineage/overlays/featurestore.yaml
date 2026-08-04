@@ -2,7 +2,7 @@
 # Images:
 #   feature-server: quay.io/nkathole/feature-server:develop-openlineage-spark
 #     (feastdev-ci develop + openlineage-python + pyspark)
-#   spark driver/executor: quay.io/nkathole/feast-spark-application:0.65-ol
+#   spark driver/executor: quay.io/nkathole/feature-server:spark-application-0.65-ol
 ---
 apiVersion: v1
 kind: Secret
@@ -20,16 +20,17 @@ metadata:
 data:
   config: |
     type: spark_application
-    image: quay.io/nkathole/feast-spark-application:0.65-ol
+    image: quay.io/nkathole/feature-server:spark-application-0.65-ol
     namespace: feast
     spark_version: "4.0.1"
     driver_cores: 1
-    driver_memory: "2g"
+    driver_memory: "1g"
     executor_instances: 1
     executor_cores: 1
-    executor_memory: "2g"
+    executor_memory: "1g"
     job_timeout_seconds: 3600
     poll_interval_seconds: 10
+    ttl_seconds_after_finished: 600
     env:
       - name: POSTGRES_USER
         valueFrom:
