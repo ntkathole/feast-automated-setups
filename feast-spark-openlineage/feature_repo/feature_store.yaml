@@ -1,0 +1,4 @@
+# Placeholder — feast-operator overwrites from FeatureStore CR.
+project: customer_churn
+provider: local
+entity_key_serialization_version: 3
