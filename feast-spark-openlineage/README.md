@@ -1,7 +1,5 @@
 # Feast + SparkApplication compute engine + OpenLineage consumer (RHOAI/ODH)
 
-Real CR-based setup — no mocked lineage events.
-
 ## What this deploys
 
 | Piece | How |
